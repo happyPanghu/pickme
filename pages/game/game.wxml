@@ -1,0 +1,39 @@
+<!-- 全屏黑色游戏区域 -->
+<view
+  class="stage {{flooding ? 'flooding' : ''}}"
+  style="background-color: {{flooding ? floodColor : '#000000'}};"
+  catchtouchstart="onTouchStart"
+  catchtouchmove="onTouchMove"
+  catchtouchend="onTouchEnd"
+  catchtouchcancel="onTouchCancel"
+>
+  <!-- Canvas 2D 绘制手指圆圈 -->
+  <canvas
+    type="2d"
+    id="gameCanvas"
+    class="game-canvas"
+    disable-scroll="true"
+  ></canvas>
+
+  <!-- 顶部提示文字（无玩家 / 等待中 / 胜利） -->
+  <view class="tip {{flooding ? 'tip-hidden' : ''}}" wx:if="{{!flooding}}">
+    <text wx:if="{{touchCount === 0}}">按下手指开始</text>
+    <text wx:elif="{{countingDown}}">{{countdownText}}</text>
+    <text wx:else>等待更多玩家…</text>
+  </view>
+
+  <!-- 底部控制栏：赢家数量 +/- -->
+  <view class="control-bar {{flooding ? 'control-hidden' : ''}}" catchtouchstart="stopPropagation" catchtouchmove="stopPropagation" catchtouchend="stopPropagation">
+    <view class="control-label">赢家数量</view>
+    <view class="control-group">
+      <view class="ctrl-btn {{winnerCount <= 1 ? 'disabled' : ''}}" bindtap="decWinner">−</view>
+      <view class="ctrl-num">{{winnerCount}}</view>
+      <view class="ctrl-btn {{winnerCount >= 5 ? 'disabled' : ''}}" bindtap="incWinner">+</view>
+    </view>
+  </view>
+
+  <!-- 胜利后点击任意处重新开始提示 -->
+  <view class="restart-hint" wx:if="{{flooding}}" catchtouchstart="resetGame">
+    <text>点击重新开始</text>
+  </view>
+</view>

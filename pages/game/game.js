@@ -193,31 +193,90 @@ Page({
     // 清屏（透明，背景由 wxss 的 stage 提供黑色 / 胜利色）
     ctx.clearRect(0, 0, w, h);
 
-    // 胜利铺满动画（赢家圆圈膨胀到整屏）
+    // 胜利铺满动画
+    // - 1 个赢家：一个扩散圆铺满屏幕（和原来行为一致）
+    // - N 个赢家（N≥2）：按 Voronoi 分区，每个赢家在自己的区域内扩散铺满
+    //   视觉效果：每个赢家的颜色从自己的位置向外涌出，相遇处形成中垂线分界
+    //   最终每个赢家占据离自己最近的那块区域（面积之和 = 整屏）
     if (this.data.flooding) {
-      // 胜利态不用混合色，直接覆盖
       ctx.globalCompositeOperation = 'source-over';
       const elapsed = now - this.floodStartAt;
       const t = Math.min(1, elapsed / FLOOD_DURATION);
       const maxRadius = Math.hypot(this.canvasWidth, this.canvasHeight);
+
+      // 先回收已完成 despawning 动画的非赢家 finger，避免 Map 残留污染下一局
       const floodToDelete = [];
       this.fingers.forEach((f) => {
-        // flooding 阶段仍然要回收已完成 despawning 动画的非赢家 finger，
-        // 避免它们永久残留在 Map 里污染下一局
         if (f.state === 'despawning' && now - f.removedAt >= DESPAWN_DURATION) {
           floodToDelete.push(f.id);
-          return;
         }
-        if (!this.winners.has(f.id)) return;
-        // flood 起始半径衔接胜利强调阶段的最终大小（考虑 sizeScale）
-        const scale = f.sizeScale || 1;
-        const startRadius = FINGER_RADIUS * VICTORY_MAX_SCALE * scale;
-        // 铺屏目标半径保持 maxRadius（必须铺满屏幕，不能打折）
-        const r = startRadius + (maxRadius - startRadius) * easeOutCubic(t);
-        drawCircle(ctx, f.x, f.y, r, f.color, 1, dpr);
       });
       for (let i = 0; i < floodToDelete.length; i++) {
         this.fingers.delete(floodToDelete[i]);
+      }
+
+      const winners = this.winnersSnapshot || [];
+      if (winners.length === 0) {
+        // 理论上不会发生（pickWinners 保证 winnersSnapshot 非空才进 flooding）
+        // 兜底：直接黑屏，一帧后游戏流程继续
+        return;
+      }
+
+      const easedT = easeOutCubic(t);
+      const w = this.canvasWidth;
+      const h = this.canvasHeight;
+
+      if (winners.length === 1) {
+        // 单赢家：原先的大圆扩散
+        const only = winners[0];
+        const startRadius = FINGER_RADIUS * VICTORY_MAX_SCALE * (only.sizeScale || 1);
+        const r = startRadius + (maxRadius - startRadius) * easedT;
+        drawCircle(ctx, only.x, only.y, r, only.color, 1, dpr);
+        return;
+      }
+
+      // 多赢家：为每个赢家计算 Voronoi 凸多边形（以屏幕矩形为初始，
+      // 依次用与其他赢家的"半平面"裁剪），然后在该多边形内画扩散圆
+      // 多边形在每帧都一样（赢家位置固定），但计算量极小（n^2，n≤10），
+      // 为保持代码简单直接在每帧重算而不做缓存
+      const screenRect = [
+        { x: 0, y: 0 },
+        { x: w, y: 0 },
+        { x: w, y: h },
+        { x: 0, y: h }
+      ];
+
+      for (let i = 0; i < winners.length; i++) {
+        const wi = winners[i];
+        // 从屏幕矩形开始，用 wi 与其他每个 wj 的中垂线半平面依次裁剪
+        let poly = screenRect;
+        for (let j = 0; j < winners.length; j++) {
+          if (i === j) continue;
+          const wj = winners[j];
+          // 保留靠近 wi 的那一侧（半平面：到 wi 的距离 ≤ 到 wj 的距离）
+          poly = clipPolygonByHalfplaneCloserTo(poly, wi.x, wi.y, wj.x, wj.y);
+          if (poly.length === 0) break;
+        }
+        if (poly.length < 3) continue;
+
+        // 在多边形区域内画扩散圆
+        const startRadius = FINGER_RADIUS * VICTORY_MAX_SCALE * (wi.sizeScale || 1);
+        const r = startRadius + (maxRadius - startRadius) * easedT;
+
+        ctx.save();
+        // 裁剪到 Voronoi 多边形（坐标乘 dpr）
+        ctx.beginPath();
+        ctx.moveTo(poly[0].x * dpr, poly[0].y * dpr);
+        for (let k = 1; k < poly.length; k++) {
+          ctx.lineTo(poly[k].x * dpr, poly[k].y * dpr);
+        }
+        ctx.closePath();
+        ctx.clip();
+
+        // 在 clip 区域内画扩散圆：实心 + 光晕
+        drawCircle(ctx, wi.x, wi.y, r, wi.color, 1, dpr);
+
+        ctx.restore();
       }
       return;
     }
@@ -738,6 +797,68 @@ function drawSolid(ctx, x, y, r, color, alpha, dpr) {
   ctx.beginPath();
   ctx.arc(x * dpr, y * dpr, r * dpr, 0, Math.PI * 2);
   ctx.fill();
+}
+
+// ---------------- 几何工具（多赢家 Voronoi 分区用）----------------
+// 用"到 A 更近"的半平面裁剪一个凸多边形（Sutherland-Hodgman 算法）
+//
+// 半平面定义：保留所有"到 A 的距离 ≤ 到 B 的距离"的点
+// 这等价于保留 AB 中垂线 A 一侧（含中垂线本身）的点。
+//
+// 数学推导：|PA|² ≤ |PB|² 展开后
+//   (Px - Ax)² + (Py - Ay)² ≤ (Px - Bx)² + (Py - By)²
+//   化简：2(Bx - Ax)·Px + 2(By - Ay)·Py ≤ (Bx² + By²) - (Ax² + Ay²)
+// 记 nx = Bx - Ax, ny = By - Ay, d = (Bx² + By² - Ax² - Ay²) / 2
+// 则半平面为：nx·Px + ny·Py ≤ d （点在半平面内）
+//
+// 参数：
+//   poly  凸多边形顶点数组，顺序为顺时针或逆时针皆可，每项 {x, y}
+//   ax,ay 参考点 A（保留靠近 A 的一侧）
+//   bx,by 参考点 B
+// 返回：裁剪后的新多边形（可能为空数组或少于 3 个顶点）
+function clipPolygonByHalfplaneCloserTo(poly, ax, ay, bx, by) {
+  if (!poly || poly.length === 0) return [];
+  const nx = bx - ax;
+  const ny = by - ay;
+  const d = (bx * bx + by * by - ax * ax - ay * ay) / 2;
+  // side(P) = nx*Px + ny*Py - d，≤ 0 表示 P 在半平面内（靠近 A 一侧）
+  const side = (p) => nx * p.x + ny * p.y - d;
+
+  const out = [];
+  const n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const curr = poly[i];
+    const prev = poly[(i - 1 + n) % n];
+    const sCurr = side(curr);
+    const sPrev = side(prev);
+    const currIn = sCurr <= 0;
+    const prevIn = sPrev <= 0;
+
+    if (currIn) {
+      if (!prevIn) {
+        // prev 在外、curr 在内：先输出交点，再输出 curr
+        out.push(intersectEdgeWithHalfplane(prev, curr, sPrev, sCurr));
+      }
+      out.push(curr);
+    } else if (prevIn) {
+      // prev 在内、curr 在外：只输出交点
+      out.push(intersectEdgeWithHalfplane(prev, curr, sPrev, sCurr));
+    }
+    // prev 和 curr 都在外：什么都不输出
+  }
+  return out;
+}
+
+// 线段 (p1, p2) 与半平面边界（side 值分别为 s1, s2，异号）的交点
+// 线性插值：t = s1 / (s1 - s2)，交点 = p1 + (p2 - p1) * t
+function intersectEdgeWithHalfplane(p1, p2, s1, s2) {
+  const denom = s1 - s2;
+  // 理论上 denom 不会为 0（调用方保证 s1 和 s2 异号）；防御性处理避免除零
+  const t = denom === 0 ? 0 : s1 / denom;
+  return {
+    x: p1.x + (p2.x - p1.x) * t,
+    y: p1.y + (p2.y - p1.y) * t
+  };
 }
 
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }

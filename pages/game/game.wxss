@@ -19,9 +19,10 @@
 
 .tip {
   position: absolute;
-  top: 80rpx;
-  left: 0;
-  right: 0;
+  /* 在安全区基础上再加 40rpx，避开刘海 / 灵动岛 / 状态栏 */
+  top: calc(env(safe-area-inset-top, 0px) + 40rpx);
+  left: calc(env(safe-area-inset-left, 0px) + 32rpx);
+  right: calc(env(safe-area-inset-right, 0px) + 32rpx);
   text-align: center;
   color: rgba(255, 255, 255, 0.55);
   font-size: 30rpx;
@@ -36,9 +37,10 @@
 
 .control-bar {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 80rpx;
+  left: calc(env(safe-area-inset-left, 0px) + 0rpx);
+  right: calc(env(safe-area-inset-right, 0px) + 0rpx);
+  /* 兼容 iPhone Home Indicator，在安全区基础上再抬 40rpx */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 40rpx);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -105,7 +107,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 120rpx;
+  /* 避开 Home Indicator */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80rpx);
   z-index: 20;
 }
 

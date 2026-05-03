@@ -31,11 +31,16 @@
     "useApiHostProcess": true,
     "showES6CompileOption": false,
     "checkInvalidKey": true,
-    "ignoreUploadUnusedFiles": true
+    "ignoreUploadUnusedFiles": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
   },
   "compileType": "miniprogram",
   "libVersion": "3.0.0",
-  "appid": "touristappid",
+  "appid": "wxe136b61521fa47bb",
   "projectname": "chwazi",
   "condition": {},
   "editorSetting": {

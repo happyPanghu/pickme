@@ -22,18 +22,30 @@
     <text wx:else>等待更多玩家…</text>
   </view>
 
-  <!-- 底部控制栏：赢家数量 +/- -->
-  <view class="control-bar {{flooding ? 'control-hidden' : ''}}" catchtouchstart="stopPropagation" catchtouchmove="stopPropagation" catchtouchend="stopPropagation">
+  <!-- 底部控制栏：赢家数量 +/-
+       父容器不再拦截任何事件，让按钮自己处理 touchstart（catch 阻止冒泡）。
+       给按钮同时绑 bindtap 和 catchtouchstart 双保险：
+         - catchtouchstart：立刻响应、阻止向 stage 冒泡生成圆圈
+         - bindtap：备用路径，touchstart 如因竞态未触发时仍能点击 -->
+  <view class="control-bar {{flooding ? 'control-hidden' : ''}}">
     <view class="control-label">赢家数量</view>
     <view class="control-group">
-      <view class="ctrl-btn {{winnerCount <= 1 ? 'disabled' : ''}}" bindtap="decWinner">−</view>
+      <view
+        class="ctrl-btn {{winnerCount <= 1 ? 'disabled' : ''}}"
+        catchtouchstart="onDecTouch"
+        bindtap="decWinner"
+      >−</view>
       <view class="ctrl-num">{{winnerCount}}</view>
-      <view class="ctrl-btn {{winnerCount >= 5 ? 'disabled' : ''}}" bindtap="incWinner">+</view>
+      <view
+        class="ctrl-btn"
+        catchtouchstart="onIncTouch"
+        bindtap="incWinner"
+      >+</view>
     </view>
   </view>
 
-  <!-- 胜利后点击任意处重新开始提示 -->
-  <view class="restart-hint" wx:if="{{flooding}}" catchtouchstart="resetGame">
-    <text>点击重新开始</text>
+  <!-- 胜利后的提示（按下任意手指即自动开启新一局，无需拦截事件） -->
+  <view class="restart-hint" wx:if="{{flooding}}">
+    <text>按下手指重新开始</text>
   </view>
 </view>

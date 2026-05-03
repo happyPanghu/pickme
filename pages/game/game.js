@@ -650,13 +650,16 @@ Page({
 
     // 拍一份赢家稳定快照（id / 位置 / 颜色 / sizeScale），
     // 在 flooding 阶段独立使用，不受 fingers Map 后续清理影响
-    this.winnersSnapshot = winnersArr.map((f) => ({
-      id: f.id,
-      x: f.x,
-      y: f.y,
-      color: f.color,
-      sizeScale: f.sizeScale || 1
-    }));
+    // 过滤掉坐标无效的 finger（防御性：理论上 pickWinners 看到的 finger 坐标都有效）
+    this.winnersSnapshot = winnersArr
+      .filter((f) => typeof f.x === 'number' && typeof f.y === 'number')
+      .map((f) => ({
+        id: f.id,
+        x: f.x,
+        y: f.y,
+        color: f.color,
+        sizeScale: f.sizeScale || 1
+      }));
 
     // 1) 非赢家立即进入 despawning，180ms 内淡出消失
     const tNow = Date.now();
@@ -816,10 +819,16 @@ function drawSolid(ctx, x, y, r, color, alpha, dpr) {
 //   ax,ay 参考点 A（保留靠近 A 的一侧）
 //   bx,by 参考点 B
 // 返回：裁剪后的新多边形（可能为空数组或少于 3 个顶点）
+//
+// 边界情况：当 A 与 B 重合（距离 < EPSILON）时，中垂线不存在，
+// 此时按约定返回原多边形不动（相当于两点共享同一区域，行为退化为单赢家）。
 function clipPolygonByHalfplaneCloserTo(poly, ax, ay, bx, by) {
   if (!poly || poly.length === 0) return [];
   const nx = bx - ax;
   const ny = by - ay;
+  // 退化情况：A、B 几乎重合，半平面无意义，直接返回原多边形（不裁剪）
+  const EPSILON = 1e-6;
+  if (nx * nx + ny * ny < EPSILON) return poly.slice();
   const d = (bx * bx + by * by - ax * ax - ay * ay) / 2;
   // side(P) = nx*Px + ny*Py - d，≤ 0 表示 P 在半平面内（靠近 A 一侧）
   const side = (p) => nx * p.x + ny * p.y - d;

@@ -45,11 +45,18 @@
 
 .hud-bottom {
   bottom: 72rpx;
-  pointer-events: auto;
-  /* 赢家数控件 + 右侧音效主题按钮：纵向紧凑排布，按钮居中对齐 */
+  /* 纵向紧凑排布：赢家数胶囊在上，音效主题小按钮在下 */
   flex-direction: column;
   align-items: center;
   gap: 20rpx;
+  /* ⚠️ 全宽 bar 不响应触摸，避免把 stage 的手指圆事件吃掉。
+     真正需要响应的子控件自己开 pointer-events:auto */
+  pointer-events: none;
+}
+/* 两个子控件单独启用触摸响应 */
+.hud-bottom .winner-ctrl,
+.hud-bottom .scheme-btn {
+  pointer-events: auto;
 }
 
 /* ---- 音效主题切换胶囊按钮（小号，复用玻璃质感） ---- */

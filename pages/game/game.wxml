@@ -26,9 +26,11 @@
     <view class="hint hint-{{hintMood}}">{{hintText}}</view>
   </view>
 
-  <!-- HUD：底部赢家数控制栏（flooding 时隐藏，避免挡住胜利画面） -->
-  <view class="hud hud-bottom {{flashing ? 'hud-flashing' : ''}}" wx:if="{{!flooding}}" catchtouchstart="noop">
-    <view class="winner-ctrl">
+  <!-- HUD：底部赢家数控制栏（flooding 时隐藏，避免挡住胜利画面）
+       ⚠️ 注意：这一层不挂 catchtouchstart，也不响应触摸（wxss 里 pointer-events:none），
+       事件拦截收敛到内部两个"真正要交互的控件"上。否则全宽 bar 会把 stage 的触摸吃掉。 -->
+  <view class="hud hud-bottom {{flashing ? 'hud-flashing' : ''}}" wx:if="{{!flooding}}">
+    <view class="winner-ctrl" catchtouchstart="noop">
       <view
         class="btn {{winnerCount <= 1 ? 'btn-disabled' : ''}}"
         bindtap="onDecWinner"

@@ -4,6 +4,9 @@
 const COUNTDOWN_MS = 3000;          // 连续 3 秒后定胜负
 const MIN_PLAYERS = 2;              // 至少多少根手指按下才会开始倒计时
 const GHOST_WATCHDOG_MS = 400;      // 幽灵手指守护阈值：创建后 > 此时间 且不在最近 touches 快照里 → 强制 despawn
+const SNAPSHOT_STALE_MS = 2500;     // 快照最大容忍年龄：超过此时间若新快照仍与 Map 不一致，就认定是旧 Map 里有"永久幽灵"，
+                                    // 强制接受新快照并把无法覆盖的老 finger 清理掉。没有这个兜底，单个 touchend 丢失
+                                    // 的 finger 会永远锁死 snapshot，watchdog 永远不会触发它，屏幕上一直有圆不消失。
 const FINGER_RADIUS = 70;           // 手指圆的目标基础半径（px），实际半径会乘以每个手指自己的 sizeScale
 const SPAWN_DURATION = 220;         // 圆圈从小到大的出现动画时长（ms）
 const DESPAWN_DURATION = 180;       // 手指离开时缩小动画时长（ms）
@@ -122,6 +125,14 @@ Page({
     this._lastTouchIds = new Set();
     this._lastTouchesAt = 0;
 
+    // ---- 诊断用计数器与心跳状态 ----
+    // 统计全局交互数，确保每次按下/抬起/结算都有账可查
+    this._pressCount = 0;          // 累计成功按下的手指次数
+    this._releaseCount = 0;        // 累计抬起/取消/清理的手指次数（所有路径合一）
+    this._settleCount = 0;         // 累计结算次数（pickWinners 被调用）
+    this._lastHeartbeatAt = 0;     // render 心跳上次 dump 时间戳
+    console.log('[onLoad] 🟢 page inited, counters reset');
+
     this.initCanvas();
   },
 
@@ -190,6 +201,16 @@ Page({
     const w = this.canvasWidth * dpr;
     const h = this.canvasHeight * dpr;
 
+    // 心跳：每 1s dump 一次 Map 状态，便于排查"屏幕上一直有圆不消失"的问题。
+    // 只要幽灵圆还在 Map 里，心跳就会持续打印它的 id/state/age，
+    // 可以精确看到它是一直是 alive 还是被卡在某个 state 上。
+    if (now - this._lastHeartbeatAt >= 1000) {
+      this._lastHeartbeatAt = now;
+      if (this.fingers.size > 0 || this.data.flooding || this.gameEnded) {
+        this.dumpFingers('heartbeat');
+      }
+    }
+
     // 清屏（透明，背景由 wxss 的 stage 提供黑色 / 胜利色）
     ctx.clearRect(0, 0, w, h);
 
@@ -213,6 +234,12 @@ Page({
       });
       for (let i = 0; i < floodToDelete.length; i++) {
         this.fingers.delete(floodToDelete[i]);
+      }
+      if (floodToDelete.length > 0) {
+        this._releaseCount += floodToDelete.length;
+        console.log('[render/flooding] 🧹 reaped despawning fingers:',
+          JSON.stringify(floodToDelete),
+          '| release#', this._releaseCount);
       }
 
       const winners = this.winnersSnapshot || [];
@@ -286,16 +313,24 @@ Page({
     // 这条是针对"快速点击但 touchend 事件丢失"的兜底：只要 render 循环还在跑，
     // 最多在 GHOST_WATCHDOG_MS 内就会被清理，不会永久残留。
     if (this._lastTouchesAt > 0 && !this.gameEnded) {
+      const watchdogKilled = [];
       this.fingers.forEach((f) => {
         if (f.state === 'despawning' || f.state === 'victory') return;
         // 最近的 touches 快照里不存在 + 创建时间已足够久 → 认定为幽灵
         if (!this._lastTouchIds.has(f.id) && now - f.createdAt >= GHOST_WATCHDOG_MS) {
-          console.log('[watchdog] ghost finger detected, despawn id:', f.id,
-            'age:', now - f.createdAt, 'ms');
+          watchdogKilled.push({ id: f.id, age: now - f.createdAt, state: f.state });
           f.state = 'despawning';
           f.removedAt = now;
+          this._releaseCount++;
         }
       });
+      if (watchdogKilled.length > 0) {
+        console.log('[watchdog] 👻 ghost detected & despawned:',
+          JSON.stringify(watchdogKilled),
+          '| snapshotIds:', JSON.stringify(Array.from(this._lastTouchIds)),
+          '| snapshotAge:', now - this._lastTouchesAt, 'ms',
+          '| release#', this._releaseCount);
+      }
     }
 
     // 正常态 / 胜利强调态：两阶段绘制 + lighter 混合
@@ -311,6 +346,8 @@ Page({
 
     this.fingers.forEach((f) => {
       if (typeof f.x !== 'number' || typeof f.y !== 'number') {
+        console.log('[render] ⚠️ invalid coord, force delete id:', f.id,
+          'x:', f.x, 'y:', f.y, 'state:', f.state);
         toDelete.push(f.id);
         return;
       }
@@ -332,6 +369,8 @@ Page({
         radius = baseRadius * (1 - easeInCubic(t));
         alpha = 1 - t;
         if (t >= 1) {
+          console.log('[render] 🗑️ despawn animation done, delete id:', f.id,
+            'totalLife:', now - f.createdAt, 'ms');
           toDelete.push(f.id);
           return;
         }
@@ -375,15 +414,32 @@ Page({
   onTouchStart(e) {
     // 胜利画面下，用户重新按下手指 → 自动开启新一局
     if (this.gameEnded) {
+      console.log('[onTouchStart] 🔄 gameEnded=true, trigger resetGame');
       this.resetGame();
     }
 
     const now = Date.now();
     const changed = e.changedTouches || [];
     const allTouches = e.touches || [];
-    console.log('[onTouchStart] changed:', changed.length,
-      'allTouches:', allTouches.length,
-      'fingersBefore:', this.fingers.size);
+    const changedIds = [];
+    for (let i = 0; i < changed.length; i++) changedIds.push(changed[i].identifier);
+    const allIds = [];
+    for (let i = 0; i < allTouches.length; i++) allIds.push(allTouches[i].identifier);
+
+    console.log('[onTouchStart] ⬇️ ENTER',
+      '| changed:', changed.length, 'ids:', JSON.stringify(changedIds),
+      '| allTouches:', allTouches.length, 'ids:', JSON.stringify(allIds),
+      '| fingersBefore:', this.fingers.size);
+
+    // 第 6 指场景特征：allTouches < changed + 已有活跃 finger 数量
+    // 此时系统截断了快照，必须用保守策略
+    const activeBefore = this.activeFingerCount();
+    if (allTouches.length < activeBefore + changed.length) {
+      console.log('[onTouchStart] ⚠️ SUSPECT TRUNCATED:',
+        'allTouches:', allTouches.length,
+        '< activeBefore + changed:', activeBefore + changed.length,
+        '(典型第 6+ 指 iOS 截断场景)');
+    }
 
     // ---- 关键修复：以系统 e.touches 为权威，清理 Map 里的"幽灵手指" ----
     // 当 touchend 事件丢失（小程序/原生组件已知问题），Map 里会残留旧 finger。
@@ -398,7 +454,7 @@ Page({
       const tx = pickCoord(t, 'x');
       const ty = pickCoord(t, 'y');
       if (typeof tx !== 'number' || typeof ty !== 'number') {
-        console.warn('[onTouchStart] skip invalid coord, raw touch:', JSON.stringify(t));
+        console.warn('[onTouchStart] ⚠️ skip invalid coord, raw touch:', JSON.stringify(t));
         return;
       }
 
@@ -412,7 +468,9 @@ Page({
         f.createdAt = now;
         f.state = 'spawning';
         f.removedAt = 0;
-        console.log('[onTouchStart] refresh existing id:', t.identifier);
+        this._pressCount++;
+        console.log('[onTouchStart] 🔁 refresh existing id:', t.identifier,
+          'pos:', tx, ty, '| press#', this._pressCount);
         freshIds.push(t.identifier);
         added++;
         return;
@@ -429,8 +487,10 @@ Page({
       });
       freshIds.push(t.identifier);
       added++;
-      console.log('[onTouchStart] add id:', t.identifier, 'pos:', tx, ty, 'scale:',
-        this.fingers.get(t.identifier).sizeScale.toFixed(2));
+      this._pressCount++;
+      console.log('[onTouchStart] ✅ ADD id:', t.identifier, 'pos:', tx, ty,
+        'scale:', this.fingers.get(t.identifier).sizeScale.toFixed(2),
+        '| press#', this._pressCount);
     });
 
     console.log('[onTouchStart] fingersAfter:', this.fingers.size, 'added:', added);
@@ -445,6 +505,8 @@ Page({
       this.syncTouchCount();
       this.restartCountdown();
     }
+
+    this.dumpFingers('after-touchstart');
   },
 
   onTouchMove(e) {
@@ -467,29 +529,49 @@ Page({
   },
 
   onTouchEnd(e) {
-    this.handleTouchRemove(e);
+    console.log('[onTouchEnd] triggered');
+    this.handleTouchRemove(e, 'touchend');
   },
 
   onTouchCancel(e) {
-    this.handleTouchRemove(e);
+    console.log('[onTouchCancel] triggered');
+    this.handleTouchRemove(e, 'touchcancel');
   },
 
-  handleTouchRemove(e) {
+  handleTouchRemove(e, source) {
     const now = Date.now();
     const changed = e.changedTouches || [];
     const allTouches = e.touches || [];
-    console.log('[handleTouchRemove] changed:', changed.length,
-      'allTouches:', allTouches.length,
-      'fingersBefore:', this.fingers.size);
+    const changedIds = [];
+    for (let i = 0; i < changed.length; i++) changedIds.push(changed[i].identifier);
+    const allIds = [];
+    for (let i = 0; i < allTouches.length; i++) allIds.push(allTouches[i].identifier);
+
+    console.log('[handleTouchRemove] ⬆️ ENTER source:', source,
+      '| changed:', changed.length, 'ids:', JSON.stringify(changedIds),
+      '| allTouches:', allTouches.length, 'ids:', JSON.stringify(allIds),
+      '| fingersBefore:', this.fingers.size);
 
     // 1) 先把 changed 里的 finger 标记为 despawning
     // 这样接下来 _updateTouchSnapshot 做"allTouches 是否覆盖 Map 活跃 finger"判断时，
     // 这批刚抬起的 finger 不会被算作"未覆盖"而导致快照更新被跳过
+    let markedCount = 0;
+    let unknownCount = 0;
     changed.forEach((t) => {
       const f = this.fingers.get(t.identifier);
       if (f && f.state !== 'despawning') {
         f.state = 'despawning';
         f.removedAt = now;
+        markedCount++;
+        this._releaseCount++;
+        console.log('[handleTouchRemove] 🔽 mark despawning id:', t.identifier,
+          'age:', now - f.createdAt, 'ms', '| release#', this._releaseCount);
+      } else if (!f) {
+        unknownCount++;
+        console.log('[handleTouchRemove] ⚠️ unknown id in changed:', t.identifier,
+          '(not in fingers Map, 可能早已被 watchdog 清理)');
+      } else {
+        console.log('[handleTouchRemove] ℹ️ id already despawning:', t.identifier);
       }
     });
 
@@ -501,15 +583,26 @@ Page({
 
     this.syncTouchCount();
 
-    if (this.gameEnded) return;
+    console.log('[handleTouchRemove] ⬆️ EXIT',
+      'marked:', markedCount, 'unknown:', unknownCount,
+      'activeAfter:', this.activeFingerCount(),
+      'mapSize:', this.fingers.size);
+
+    if (this.gameEnded) {
+      this.dumpFingers('after-touchremove(gameEnded)');
+      return;
+    }
 
     // 任何抬指导致活跃手指数 < MIN_PLAYERS，都立刻取消倒计时
     if (this.activeFingerCount() < MIN_PLAYERS) {
+      console.log('[handleTouchRemove] activeFingers <', MIN_PLAYERS, ', clear countdown');
       this.clearCountdown();
       if (this.data.countingDown) {
         this.setData({ countingDown: false, countdownText: '' });
       }
     }
+
+    this.dumpFingers('after-touchremove');
   },
 
   // 更新最近一次已知的系统 touches 快照，供 render 里的 watchdog 使用
@@ -537,23 +630,67 @@ Page({
       }
     }
 
-    // 检查新快照是否能覆盖当前 Map 里所有活跃（非 despawning）finger
-    let uncovered = 0;
-    this.fingers.forEach((f) => {
-      if (f.state === 'despawning') return;
-      if (!newIds.has(f.id)) uncovered++;
+    // 关键过滤：把 Map 里已经 despawning / victory 的 id 从 newIds 剔除。
+    // 原因：结算后系统的 e.touches 仍然会把刚抬起但 touchend 未到的 id 报告为"活着"，
+    // 导致死 id 反而被 snapshot 吸收，污染后续的 watchdog 判断。
+    // 只保留"Map 里真的活跃 或 刚被 touchstart 新增"的 id。
+    const filteredIds = new Set();
+    newIds.forEach((id) => {
+      const f = this.fingers.get(id);
+      // 条件：不在 Map 里（新指还没入账，属于合法） 或 Map 里是活跃态（spawning/alive）
+      // 排除：Map 里已经是 despawning / victory 的 id（死 id 不能被 snapshot 吸收）
+      if (!f || f.state === 'spawning' || f.state === 'alive') {
+        filteredIds.add(id);
+      }
     });
 
-    if (uncovered > 0) {
-      // 快照不完整（典型场景：第 6 指按下时 iOS 只给 5 个 touches），放弃本次更新
-      console.log('[snapshot] skip: incomplete, allTouches:', allTouches.length,
+    // 检查新快照是否能覆盖当前 Map 里所有活跃（非 despawning、非 victory）finger
+    const uncoveredIds = [];
+    this.fingers.forEach((f) => {
+      if (f.state === 'despawning' || f.state === 'victory') return;
+      if (!filteredIds.has(f.id)) uncoveredIds.push(f.id);
+    });
+
+    const snapshotAge = this._lastTouchesAt ? (now - this._lastTouchesAt) : Infinity;
+    const stale = snapshotAge >= SNAPSHOT_STALE_MS;
+
+    if (uncoveredIds.length > 0 && !stale) {
+      // 快照不完整 + 旧快照还不算太旧：保守保留旧值
+      // （典型场景：第 6 指按下时 iOS 只给 5 个 touches，短时间内宁可让 watchdog 暂时失效）
+      console.log('[snapshot] ⚠️ SKIP incomplete:',
+        'allTouches:', allTouches.length,
         'extra:', (extraIds && extraIds.length) || 0,
-        'uncovered:', uncovered);
+        'uncoveredIds:', JSON.stringify(uncoveredIds),
+        'snapshotAge:', snapshotAge, 'ms (< stale', SNAPSHOT_STALE_MS, 'ms，保留旧快照)');
       return;
     }
 
-    this._lastTouchIds = newIds;
+    // 强制接受路径：
+    //   - 正常情况：新快照完整覆盖 Map
+    //   - 兜底情况：旧快照已过期（SNAPSHOT_STALE_MS），说明旧快照可能被"永远抬不起来"的
+    //              幽灵锁死了，此时强制接受新快照，并把 uncovered 的 finger 直接 despawn
+    if (uncoveredIds.length > 0 && stale) {
+      console.log('[snapshot] 🧨 STALE snapshot force-update:',
+        'snapshotAge:', snapshotAge, 'ms >= stale', SNAPSHOT_STALE_MS, 'ms',
+        '| force despawn uncovered ghosts:', JSON.stringify(uncoveredIds));
+      this.fingers.forEach((f) => {
+        if (f.state === 'despawning' || f.state === 'victory') return;
+        if (!filteredIds.has(f.id)) {
+          f.state = 'despawning';
+          f.removedAt = now;
+          this._releaseCount++;
+        }
+      });
+    }
+
+    const prevSize = this._lastTouchIds.size;
+    this._lastTouchIds = filteredIds;
     this._lastTouchesAt = now;
+    console.log('[snapshot] ✅ updated:', prevSize, '->', filteredIds.size,
+      'ids:', JSON.stringify(Array.from(filteredIds)),
+      (newIds.size !== filteredIds.size
+        ? '(filtered out dead ids: ' + (newIds.size - filteredIds.size) + ')'
+        : ''));
   },
 
   // 以系统 e.touches（当前真实在屏手指）为权威，把 Map 里不存在的 finger
@@ -562,52 +699,103 @@ Page({
   // ⚠️ 重要：iOS/微信 e.touches 最多返回 5 根手指，当第 6 根按下时
   // allTouches.length = 5 但屏幕真实有 6 根。此时若盲目 reconcile 会
   // 把 Map 里的老手指全部误判为"幽灵"清空掉。
-  // 策略：仅当 allTouches 覆盖了 Map 中所有活跃 finger 时才相信它。
+  //
+  // 三层策略（从宽到严）：
+  //   1. 正常：allTouches 完整覆盖 Map 所有活跃 finger → 清理 uncovered
+  //   2. 保守：允许部分 uncovered，但前提是 snapshot 还新鲜（age < SNAPSHOT_STALE_MS）
+  //      这是为了保护第 6+ 指场景下的老手指
+  //   3. 兜底：snapshot 已过期（stale） 或 完全无交集（covered=0 且 Map 非空）
+  //      → 强制清理所有 uncovered，不再保守。这是 touchend 永久丢失的 bug
+  //      自救路径，否则旧 finger 会永远留在 Map 里。
+  //
+  // 另外：状态为 'victory' 的赢家不计入"需要被 allTouches 覆盖"的名单。
+  // 赢家在结算后通常已经抬起手指，e.touches 里不会再有它的 id，
+  // 我们也不希望把赢家算作"未覆盖"进而触发错误清理——flooding 结束后
+  // 会由 resetGame 统一清理。
   reconcileFingersWith(allTouches, now) {
     const aliveIds = new Set();
     for (let i = 0; i < allTouches.length; i++) {
       aliveIds.add(allTouches[i].identifier);
     }
 
-    // 统计 Map 里的活跃 finger id（非 despawning）
-    const activeFingerIds = [];
-    this.fingers.forEach((f) => {
-      if (f.state !== 'despawning') activeFingerIds.push(f.id);
+    // 与 _updateTouchSnapshot 对齐：过滤掉 aliveIds 里 Map 内已是 despawning/victory
+    // 的死 id，避免结算后 e.touches 里带着死 id 干扰覆盖判断。
+    const filteredAliveIds = new Set();
+    aliveIds.forEach((id) => {
+      const f = this.fingers.get(id);
+      if (!f || f.state === 'spawning' || f.state === 'alive') {
+        filteredAliveIds.add(id);
+      }
     });
 
-    // 计算有多少 Map 活跃 finger 被 allTouches 覆盖
+    // 统计 Map 里的"真活跃" finger id（非 despawning、非 victory）
+    const activeFingerIds = [];
+    this.fingers.forEach((f) => {
+      if (f.state === 'despawning' || f.state === 'victory') return;
+      activeFingerIds.push(f.id);
+    });
+
+    // 计算有多少 Map 活跃 finger 被过滤后的 aliveIds 覆盖
+    const uncoveredIds = [];
     let covered = 0;
     for (let i = 0; i < activeFingerIds.length; i++) {
-      if (aliveIds.has(activeFingerIds[i])) covered++;
+      if (filteredAliveIds.has(activeFingerIds[i])) covered++;
+      else uncoveredIds.push(activeFingerIds[i]);
     }
 
-    // 如果 allTouches 没有完全覆盖我们的活跃 finger（说明系统给的快照不完整，
-    // 比如 5 指上限或者部分手指 id 没在 e.touches 里），不做任何清理，避免误杀。
-    if (covered < activeFingerIds.length) {
-      console.log('[reconcile] skip: allTouches incomplete,',
-        'covered:', covered, 'activeFingers:', activeFingerIds.length,
-        'allTouches:', allTouches.length);
+    const snapshotAge = this._lastTouchesAt ? (now - this._lastTouchesAt) : Infinity;
+    const stale = snapshotAge >= SNAPSHOT_STALE_MS;
+    // 完全无交集：covered=0 且 Map 里有活跃 finger 且 e.touches 非空
+    // 说明系统层的 identifier 全部重新编号了（iOS/WebView 某些场景会重置），
+    // 此时 Map 里的老 finger 全部都是死的，必须清掉
+    const noOverlap = covered === 0 &&
+      activeFingerIds.length > 0 &&
+      filteredAliveIds.size > 0;
+
+    if (uncoveredIds.length > 0 && !stale && !noOverlap) {
+      // 保守分支：snapshot 还新鲜 + 不是全无交集 → 保留，避免第 6 指场景误杀
+      console.log('[reconcile] ⚠️ SKIP allTouches incomplete,',
+        'covered:', covered, '/ active:', activeFingerIds.length,
+        '| allTouches:', allTouches.length,
+        'filteredAliveIds:', JSON.stringify(Array.from(filteredAliveIds)),
+        '| uncoveredActive:', JSON.stringify(uncoveredIds),
+        '| snapshotAge:', snapshotAge, 'ms (< stale', SNAPSHOT_STALE_MS, 'ms，保留 Map 不动以避免误杀)');
       return;
     }
 
-    // allTouches 完整覆盖时，把 Map 里不在 allTouches 里的手指标为幽灵
-    // （正常情况下这里 covered === activeFingerIds.length，不会有幽灵；
-    //  但若 Map 有但 allTouches 没有，就是真幽灵，放心清掉）
+    if (uncoveredIds.length > 0 && (stale || noOverlap)) {
+      console.log('[reconcile] 🧨 FORCE cleanup:',
+        'reason:', (stale ? 'STALE(age=' + snapshotAge + 'ms)' : 'NO_OVERLAP(covered=0)'),
+        '| uncoveredActive:', JSON.stringify(uncoveredIds),
+        '| filteredAliveIds:', JSON.stringify(Array.from(filteredAliveIds)));
+    }
+
+    // 把 Map 里不在 filteredAliveIds 里的手指标为幽灵
+    // （正常情况 + stale/noOverlap 兜底，都走这里）
+    const ghostIds = [];
     this.fingers.forEach((f) => {
-      if (f.state === 'despawning') return;
-      if (!aliveIds.has(f.id)) {
-        console.log('[reconcile] mark ghost finger despawning, id:', f.id);
+      if (f.state === 'despawning' || f.state === 'victory') return;
+      if (!filteredAliveIds.has(f.id)) {
+        ghostIds.push(f.id);
         f.state = 'despawning';
         f.removedAt = now;
+        this._releaseCount++;
       }
     });
+    if (ghostIds.length > 0) {
+      console.log('[reconcile] 👻 mark ghost despawning:',
+        JSON.stringify(ghostIds),
+        '| release#', this._releaseCount);
+    }
   },
 
   // ---------------- 倒计时 & 决胜 ----------------
   restartCountdown() {
     this.clearCountdown();
+    const active = this.activeFingerCount();
     // 至少要有 MIN_PLAYERS 根手指才开始倒计时
-    if (this.activeFingerCount() < MIN_PLAYERS) {
+    if (active < MIN_PLAYERS) {
+      console.log('[countdown] ⏸ skip start, active:', active, '<', MIN_PLAYERS);
       // 未达起跑线：确保倒计时 UI 也是关闭的
       if (this.data.countingDown) {
         this.setData({ countingDown: false, countdownText: '' });
@@ -615,6 +803,9 @@ Page({
       return;
     }
 
+    console.log('[countdown] ▶️ START, active:', active,
+      'durationMs:', COUNTDOWN_MS,
+      'winnerCount:', this.data.winnerCount);
     this.setData({ countingDown: true, countdownText: '准备…' });
     this.countdownTimer = setTimeout(() => {
       this.pickWinners();
@@ -623,17 +814,25 @@ Page({
 
   clearCountdown() {
     if (this.countdownTimer) {
+      console.log('[countdown] ⏹ clear pending timer');
       clearTimeout(this.countdownTimer);
       this.countdownTimer = null;
     }
   },
 
   pickWinners() {
+    this._settleCount++;
     const active = [];
     this.fingers.forEach((f) => {
       if (f.state !== 'despawning') active.push(f);
     });
+    const activeIds = active.map((f) => f.id);
+    console.log('[pickWinners] 🎯 ENTER settle#', this._settleCount,
+      '| activeFingers:', active.length, 'ids:', JSON.stringify(activeIds),
+      '| winnerCount(setting):', this.data.winnerCount);
+
     if (active.length === 0) {
+      console.log('[pickWinners] ⚠️ no active fingers, abort settle');
       this.setData({ countingDown: false, countdownText: '' });
       return;
     }
@@ -661,17 +860,27 @@ Page({
         sizeScale: f.sizeScale || 1
       }));
 
+    const winnerIds = winnersArr.map((f) => f.id);
+    const loserIds = [];
+
     // 1) 非赢家立即进入 despawning，180ms 内淡出消失
     const tNow = Date.now();
     this.fingers.forEach((f) => {
       if (!this.winners.has(f.id)) {
         f.state = 'despawning';
         f.removedAt = tNow;
+        loserIds.push(f.id);
+        this._releaseCount++;
       } else {
         // 赢家进入 victory 强调状态
         f.state = 'victory';
       }
     });
+
+    console.log('[pickWinners] 🏆 WINNERS:', JSON.stringify(winnerIds),
+      '| 🥀 LOSERS(->despawning):', JSON.stringify(loserIds),
+      '| snapshotSize:', this.winnersSnapshot.length,
+      '| release#', this._releaseCount);
 
     // 2) 游戏进入结算，但先只是"强调赢家"，不立刻铺屏
     this.gameEnded = true;
@@ -694,13 +903,20 @@ Page({
         flooding: true,
         floodColor
       });
+      console.log('[flooding] 🌊 START',
+        '| winners:', this.winnersSnapshot.length,
+        '| durationMs:', FLOOD_DURATION,
+        '| settle#', this._settleCount);
       // 铺屏开始时长震，和视觉铺满同步
       wx.vibrateLong && wx.vibrateLong();
     }, VICTORY_HOLD_MS);
+
+    this.dumpFingers('after-pickWinners');
   },
 
   clearVictoryTimer() {
     if (this.victoryTimer) {
+      console.log('[victoryTimer] ⏹ clear pending flood timer');
       clearTimeout(this.victoryTimer);
       this.victoryTimer = null;
     }
@@ -711,6 +927,33 @@ Page({
     let c = 0;
     this.fingers.forEach((f) => { if (f.state !== 'despawning') c++; });
     return c;
+  },
+
+  // 诊断工具：dump 整个 fingers Map 的快照（id/state/age/pos），
+  // 用于定位"展示是否正常""离开是否有消失""幽灵圆永远不消失"等问题
+  dumpFingers(tag) {
+    const now = Date.now();
+    const list = [];
+    this.fingers.forEach((f) => {
+      list.push({
+        id: f.id,
+        state: f.state,
+        age: now - f.createdAt,
+        sinceRemove: f.removedAt ? now - f.removedAt : 0,
+        x: typeof f.x === 'number' ? Math.round(f.x) : f.x,
+        y: typeof f.y === 'number' ? Math.round(f.y) : f.y
+      });
+    });
+    const active = list.filter((x) => x.state !== 'despawning').length;
+    console.log('[dump]', tag,
+      '| press:', this._pressCount,
+      'release:', this._releaseCount,
+      'settle:', this._settleCount,
+      '| mapSize:', this.fingers.size,
+      'active:', active,
+      '| snapshot:', this._lastTouchIds.size,
+      'snapshotAge:', this._lastTouchesAt ? (now - this._lastTouchesAt) : -1,
+      '| fingers:', JSON.stringify(list));
   },
 
   syncTouchCount() {
@@ -748,6 +991,14 @@ Page({
   },
 
   resetGame() {
+    console.log('[resetGame] 🔄 ENTER',
+      '| mapSizeBefore:', this.fingers.size,
+      '| gameEnded:', this.gameEnded,
+      '| flooding:', this.data.flooding,
+      '| counters before reset: press=', this._pressCount,
+      'release=', this._releaseCount,
+      'settle=', this._settleCount);
+
     this.fingers.clear();
     this.winners.clear();
     this.winnersSnapshot = [];
@@ -757,6 +1008,9 @@ Page({
     // 重置 touches 快照：防止 watchdog 误用旧快照
     this._lastTouchIds.clear();
     this._lastTouchesAt = 0;
+    // 注意：press/release/settle 计数器不重置，作为整个会话的累计值便于定位问题
+    // 心跳时间戳重置，以便 resetGame 后第一帧立即 dump 一次新状态
+    this._lastHeartbeatAt = 0;
     this.clearCountdown();
     this.clearVictoryTimer();
     this.setData({
@@ -766,6 +1020,8 @@ Page({
       countingDown: false,
       countdownText: ''
     });
+
+    console.log('[resetGame] ✅ DONE, state cleared, ready for next round');
   }
 });
 

@@ -1,0 +1,211 @@
+[onLoad] 🟢 page inited, counters reset
+game.js? [sm]:170 [initCanvas] width: 402 height: 874 dpr: 3
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853898] | allTouches: 1 ids: [-2079853898] | fingersBefore: 0
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853898 pos: 322 647 scale: 0.94 | press# 1
+game.js? [sm]:493 [onTouchStart] fingersAfter: 1 added: 1
+game.js? [sm]:657 [snapshot] ✅ updated: 0 -> 1 ids: [-2079853898]
+game.js? [sm]:727 [countdown] ⏸ skip start, active: 1 < 2
+game.js? [sm]:885 [dump] after-touchstart | press: 1 release: 0 settle: 0 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 9 | fingers: [{"id":-2079853898,"state":"spawning","age":9,"sinceRemove":0,"x":322,"y":647}]
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853897] | allTouches: 2 ids: [-2079853898,-2079853897] | fingersBefore: 1
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853897 pos: 80 669 scale: 0.94 | press# 2
+game.js? [sm]:493 [onTouchStart] fingersAfter: 2 added: 1
+game.js? [sm]:657 [snapshot] ✅ updated: 1 -> 2 ids: [-2079853898,-2079853897]
+game.js? [sm]:735 [countdown] ▶️ START, active: 2 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 2 release: 0 settle: 0 | mapSize: 2 active: 2 | snapshot: 2 snapshotAge: 6 | fingers: [{"id":-2079853898,"state":"alive","age":391,"sinceRemove":0,"x":322,"y":647},{"id":-2079853897,"state":"spawning","age":6,"sinceRemove":0,"x":80,"y":669}]
+11game.js? [sm]:657 [snapshot] ✅ updated: 2 -> 2 ids: [-2079853898,-2079853897]
+game.js? [sm]:885 [dump] heartbeat | press: 2 release: 0 settle: 0 | mapSize: 2 active: 2 | snapshot: 2 snapshotAge: 22 | fingers: [{"id":-2079853898,"state":"alive","age":960,"sinceRemove":0,"x":320,"y":649},{"id":-2079853897,"state":"alive","age":575,"sinceRemove":0,"x":81,"y":685}]
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853896] | allTouches: 3 ids: [-2079853898,-2079853897,-2079853896] | fingersBefore: 2
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853896 pos: 154 416 scale: 0.97 | press# 3
+game.js? [sm]:493 [onTouchStart] fingersAfter: 3 added: 1
+game.js? [sm]:657 [snapshot] ✅ updated: 2 -> 3 ids: [-2079853898,-2079853897,-2079853896]
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:735 [countdown] ▶️ START, active: 3 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 3 release: 0 settle: 0 | mapSize: 3 active: 3 | snapshot: 3 snapshotAge: 6 | fingers: [{"id":-2079853898,"state":"alive","age":1030,"sinceRemove":0,"x":320,"y":649},{"id":-2079853897,"state":"alive","age":645,"sinceRemove":0,"x":81,"y":685},{"id":-2079853896,"state":"spawning","age":6,"sinceRemove":0,"x":154,"y":416}]
+8game.js? [sm]:657 [snapshot] ✅ updated: 3 -> 3 ids: [-2079853898,-2079853897,-2079853896]
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853895] | allTouches: 4 ids: [-2079853898,-2079853897,-2079853896,-2079853895] | fingersBefore: 3
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853895 pos: 114 231 scale: 0.95 | press# 4
+game.js? [sm]:493 [onTouchStart] fingersAfter: 4 added: 1
+game.js? [sm]:657 [snapshot] ✅ updated: 3 -> 4 ids: [-2079853898,-2079853897,-2079853896,-2079853895]
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:735 [countdown] ▶️ START, active: 4 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 4 release: 0 settle: 0 | mapSize: 4 active: 4 | snapshot: 4 snapshotAge: 5 | fingers: [{"id":-2079853898,"state":"alive","age":1447,"sinceRemove":0,"x":321,"y":652},{"id":-2079853897,"state":"alive","age":1062,"sinceRemove":0,"x":77,"y":685},{"id":-2079853896,"state":"alive","age":423,"sinceRemove":0,"x":154,"y":416},{"id":-2079853895,"state":"spawning","age":5,"sinceRemove":0,"x":114,"y":231}]
+16game.js? [sm]:657 [snapshot] ✅ updated: 4 -> 4 ids: [-2079853898,-2079853897,-2079853896,-2079853895]
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853894] | allTouches: 5 ids: [-2079853898,-2079853897,-2079853896,-2079853895,-2079853894] | fingersBefore: 4
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853894 pos: 293 384 scale: 0.89 | press# 5
+game.js? [sm]:493 [onTouchStart] fingersAfter: 5 added: 1
+game.js? [sm]:657 [snapshot] ✅ updated: 4 -> 5 ids: [-2079853898,-2079853897,-2079853896,-2079853895,-2079853894]
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:735 [countdown] ▶️ START, active: 5 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 5 release: 0 settle: 0 | mapSize: 5 active: 5 | snapshot: 5 snapshotAge: 6 | fingers: [{"id":-2079853898,"state":"alive","age":1888,"sinceRemove":0,"x":321,"y":654},{"id":-2079853897,"state":"alive","age":1503,"sinceRemove":0,"x":71,"y":686},{"id":-2079853896,"state":"alive","age":864,"sinceRemove":0,"x":154,"y":416},{"id":-2079853895,"state":"alive","age":446,"sinceRemove":0,"x":108,"y":246},{"id":-2079853894,"state":"spawning","age":6,"sinceRemove":0,"x":293,"y":384}]
+game.js? [sm]:657 [snapshot] ✅ updated: 5 -> 5 ids: [-2079853898,-2079853897,-2079853896,-2079853895,-2079853894]
+game.js? [sm]:885 [dump] heartbeat | press: 5 release: 0 settle: 0 | mapSize: 5 active: 5 | snapshot: 5 snapshotAge: 14 | fingers: [{"id":-2079853898,"state":"alive","age":1960,"sinceRemove":0,"x":321,"y":654},{"id":-2079853897,"state":"alive","age":1575,"sinceRemove":0,"x":71,"y":686},{"id":-2079853896,"state":"alive","age":936,"sinceRemove":0,"x":154,"y":416},{"id":-2079853895,"state":"alive","age":518,"sinceRemove":0,"x":107,"y":246},{"id":-2079853894,"state":"spawning","age":78,"sinceRemove":0,"x":293,"y":384}]
+5game.js? [sm]:657 [snapshot] ✅ updated: 5 -> 5 ids: [-2079853898,-2079853897,-2079853896,-2079853895,-2079853894]
+game.js? [sm]:534 [onTouchCancel] triggered
+game.js? [sm]:549 [handleTouchRemove] ⬆️ ENTER source: touchcancel | changed: 5 ids: [-2079853898,-2079853897,-2079853896,-2079853895,-2079853894] | allTouches: 0 ids: [] | fingersBefore: 5
+game.js? [sm]:564 [handleTouchRemove] 🔽 mark despawning id: -2079853898 age: 2348 ms | release# 1
+game.js? [sm]:564 [handleTouchRemove] 🔽 mark despawning id: -2079853897 age: 1963 ms | release# 2
+game.js? [sm]:564 [handleTouchRemove] 🔽 mark despawning id: -2079853896 age: 1324 ms | release# 3
+game.js? [sm]:564 [handleTouchRemove] 🔽 mark despawning id: -2079853895 age: 906 ms | release# 4
+game.js? [sm]:564 [handleTouchRemove] 🔽 mark despawning id: -2079853894 age: 466 ms | release# 5
+game.js? [sm]:657 [snapshot] ✅ updated: 5 -> 0 ids: []
+game.js? [sm]:858 [handleTouchRemove] ⬆️ EXIT marked: 5 unknown: 0 activeAfter: 0 mapSize: 5
+game.js? [sm]:595 [handleTouchRemove] activeFingers < 2 , clear countdown
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:885 [dump] after-touchremove | press: 5 release: 5 settle: 0 | mapSize: 5 active: 0 | snapshot: 0 snapshotAge: 5 | fingers: [{"id":-2079853898,"state":"despawning","age":2353,"sinceRemove":5,"x":321,"y":654},{"id":-2079853897,"state":"despawning","age":1968,"sinceRemove":5,"x":70,"y":687},{"id":-2079853896,"state":"despawning","age":1329,"sinceRemove":5,"x":154,"y":416},{"id":-2079853895,"state":"despawning","age":911,"sinceRemove":5,"x":106,"y":246},{"id":-2079853894,"state":"despawning","age":471,"sinceRemove":5,"x":294,"y":391}]
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853898 totalLife: 2543 ms
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853897 totalLife: 2158 ms
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853896 totalLife: 1519 ms
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853895 totalLife: 1101 ms
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853894 totalLife: 661 ms
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853893] | allTouches: 1 ids: [-2079853893] | fingersBefore: 0
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853893 pos: 252 628 scale: 0.93 | press# 6
+game.js? [sm]:493 [onTouchStart] fingersAfter: 1 added: 1
+game.js? [sm]:657 [snapshot] ✅ updated: 0 -> 1 ids: [-2079853893]
+game.js? [sm]:727 [countdown] ⏸ skip start, active: 1 < 2
+game.js? [sm]:885 [dump] after-touchstart | press: 6 release: 5 settle: 0 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 5 | fingers: [{"id":-2079853893,"state":"spawning","age":5,"sinceRemove":0,"x":252,"y":628}]
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853892] | allTouches: 2 ids: [-2079853893,-2079853892] | fingersBefore: 1
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853892 pos: 239 370 scale: 0.96 | press# 7
+game.js? [sm]:493 [onTouchStart] fingersAfter: 2 added: 1
+game.js? [sm]:657 [snapshot] ✅ updated: 1 -> 2 ids: [-2079853893,-2079853892]
+game.js? [sm]:735 [countdown] ▶️ START, active: 2 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 7 release: 5 settle: 0 | mapSize: 2 active: 2 | snapshot: 2 snapshotAge: 7 | fingers: [{"id":-2079853893,"state":"alive","age":718,"sinceRemove":0,"x":252,"y":628},{"id":-2079853892,"state":"spawning","age":7,"sinceRemove":0,"x":239,"y":370}]
+game.js? [sm]:885 [dump] heartbeat | press: 7 release: 5 settle: 0 | mapSize: 2 active: 2 | snapshot: 2 snapshotAge: 225 | fingers: [{"id":-2079853893,"state":"alive","age":936,"sinceRemove":0,"x":252,"y":628},{"id":-2079853892,"state":"spawning","age":225,"sinceRemove":0,"x":239,"y":370}]
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853891] | allTouches: 3 ids: [-2079853893,-2079853892,-2079853891] | fingersBefore: 2
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853891 pos: 298 208 scale: 0.97 | press# 8
+game.js? [sm]:493 [onTouchStart] fingersAfter: 3 added: 1
+game.js? [sm]:657 [snapshot] ✅ updated: 2 -> 3 ids: [-2079853893,-2079853892,-2079853891]
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:735 [countdown] ▶️ START, active: 3 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 8 release: 5 settle: 0 | mapSize: 3 active: 3 | snapshot: 3 snapshotAge: 6 | fingers: [{"id":-2079853893,"state":"alive","age":1066,"sinceRemove":0,"x":252,"y":628},{"id":-2079853892,"state":"alive","age":355,"sinceRemove":0,"x":239,"y":370},{"id":-2079853891,"state":"spawning","age":6,"sinceRemove":0,"x":298,"y":208}]
+4game.js? [sm]:657 [snapshot] ✅ updated: 3 -> 3 ids: [-2079853893,-2079853892,-2079853891]
+game.js? [sm]:885 [dump] heartbeat | press: 8 release: 5 settle: 0 | mapSize: 3 active: 3 | snapshot: 3 snapshotAge: 356 | fingers: [{"id":-2079853893,"state":"alive","age":1936,"sinceRemove":0,"x":251,"y":630},{"id":-2079853892,"state":"alive","age":1225,"sinceRemove":0,"x":237,"y":381},{"id":-2079853891,"state":"alive","age":876,"sinceRemove":0,"x":298,"y":208}]
+game.js? [sm]:885 [dump] heartbeat | press: 8 release: 5 settle: 0 | mapSize: 3 active: 3 | snapshot: 3 snapshotAge: 1357 | fingers: [{"id":-2079853893,"state":"alive","age":2937,"sinceRemove":0,"x":251,"y":630},{"id":-2079853892,"state":"alive","age":2226,"sinceRemove":0,"x":237,"y":381},{"id":-2079853891,"state":"alive","age":1877,"sinceRemove":0,"x":298,"y":208}]
+2game.js? [sm]:657 [snapshot] ✅ updated: 3 -> 3 ids: [-2079853893,-2079853892,-2079853891]
+game.js? [sm]:885 [dump] heartbeat | press: 8 release: 5 settle: 0 | mapSize: 3 active: 3 | snapshot: 3 snapshotAge: 145 | fingers: [{"id":-2079853893,"state":"alive","age":3937,"sinceRemove":0,"x":250,"y":630},{"id":-2079853892,"state":"alive","age":3226,"sinceRemove":0,"x":236,"y":381},{"id":-2079853891,"state":"alive","age":2877,"sinceRemove":0,"x":298,"y":208}]
+game.js? [sm]:760 [pickWinners] 🎯 ENTER settle# 1 | activeFingers: 3 ids: [-2079853893,-2079853892,-2079853891] | winnerCount(setting): 1
+game.js? [sm]:810 [pickWinners] 🏆 WINNERS: [-2079853891] | 🥀 LOSERS(->despawning): [-2079853893,-2079853892] | snapshotSize: 1 | release# 7
+game.js? [sm]:885 [dump] after-pickWinners | press: 8 release: 7 settle: 1 | mapSize: 3 active: 1 | snapshot: 3 snapshotAge: 282 | fingers: [{"id":-2079853893,"state":"despawning","age":4074,"sinceRemove":4,"x":250,"y":630},{"id":-2079853892,"state":"despawning","age":3363,"sinceRemove":4,"x":236,"y":381},{"id":-2079853891,"state":"victory","age":3014,"sinceRemove":0,"x":298,"y":208}]
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853893 totalLife: 4254 ms
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853892 totalLife: 3543 ms
+game.js? [sm]:885 [dump] heartbeat | press: 8 release: 7 settle: 1 | mapSize: 1 active: 1 | snapshot: 3 snapshotAge: 1145 | fingers: [{"id":-2079853891,"state":"victory","age":3877,"sinceRemove":0,"x":298,"y":208}]
+game.js? [sm]:835 [flooding] 🌊 START | winners: 1 | durationMs: 700 | settle# 1
+game.js? [sm]:885 [dump] heartbeat | press: 8 release: 7 settle: 1 | mapSize: 1 active: 1 | snapshot: 3 snapshotAge: 2145 | fingers: [{"id":-2079853891,"state":"victory","age":4877,"sinceRemove":0,"x":298,"y":208}]
+game.js? [sm]:529 [onTouchEnd] triggered
+game.js? [sm]:549 [handleTouchRemove] ⬆️ ENTER source: touchend | changed: 2 ids: [-2079853892,-2079853891] | allTouches: 1 ids: [-2079853893] | fingersBefore: 1
+game.js? [sm]:568 [handleTouchRemove] ⚠️ unknown id in changed: -2079853892 (not in fingers Map, 可能早已被 watchdog 清理)
+game.js? [sm]:564 [handleTouchRemove] 🔽 mark despawning id: -2079853891 age: 5248 ms | release# 8
+game.js? [sm]:657 [snapshot] ✅ updated: 3 -> 1 ids: [-2079853893]
+game.js? [sm]:858 [handleTouchRemove] ⬆️ EXIT marked: 1 unknown: 1 activeAfter: 0 mapSize: 1
+game.js? [sm]:885 [dump] after-touchremove(gameEnded) | press: 8 release: 8 settle: 1 | mapSize: 1 active: 0 | snapshot: 1 snapshotAge: 3 | fingers: [{"id":-2079853891,"state":"despawning","age":5251,"sinceRemove":3,"x":298,"y":208}]
+game.js? [sm]:529 [onTouchEnd] triggered
+game.js? [sm]:549 [handleTouchRemove] ⬆️ ENTER source: touchend | changed: 1 ids: [-2079853893] | allTouches: 0 ids: [] | fingersBefore: 1
+game.js? [sm]:568 [handleTouchRemove] ⚠️ unknown id in changed: -2079853893 (not in fingers Map, 可能早已被 watchdog 清理)
+game.js? [sm]:657 [snapshot] ✅ updated: 1 -> 0 ids: []
+game.js? [sm]:858 [handleTouchRemove] ⬆️ EXIT marked: 0 unknown: 1 activeAfter: 0 mapSize: 1
+game.js? [sm]:885 [dump] after-touchremove(gameEnded) | press: 8 release: 8 settle: 1 | mapSize: 1 active: 0 | snapshot: 0 snapshotAge: 2 | fingers: [{"id":-2079853891,"state":"despawning","age":5407,"sinceRemove":159,"x":298,"y":208}]
+game.js? [sm]:238 [render/flooding] 🧹 reaped despawning fingers: [-2079853891] | release# 9
+game.js? [sm]:885 [dump] heartbeat | press: 8 release: 9 settle: 1 | mapSize: 0 active: 0 | snapshot: 0 snapshotAge: 472 | fingers: []
+game.js? [sm]:414 [onTouchStart] 🔄 gameEnded=true, trigger resetGame
+game.js? [sm]:923 [resetGame] 🔄 ENTER | mapSizeBefore: 0 | gameEnded: true | flooding: true | counters before reset: press= 8 release= 9 settle= 1
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:953 [resetGame] ✅ DONE, state cleared, ready for next round
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853890] | allTouches: 1 ids: [-2079853890] | fingersBefore: 0
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853890 pos: 81 676 scale: 0.82 | press# 9
+game.js? [sm]:493 [onTouchStart] fingersAfter: 1 added: 1
+game.js? [sm]:657 [snapshot] ✅ updated: 0 -> 1 ids: [-2079853890]
+game.js? [sm]:727 [countdown] ⏸ skip start, active: 1 < 2
+game.js? [sm]:885 [dump] after-touchstart | press: 9 release: 9 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 4 | fingers: [{"id":-2079853890,"state":"spawning","age":4,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:885 [dump] heartbeat | press: 9 release: 9 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 11 | fingers: [{"id":-2079853890,"state":"spawning","age":11,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:885 [dump] heartbeat | press: 9 release: 9 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 1011 | fingers: [{"id":-2079853890,"state":"alive","age":1011,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853889] | allTouches: 2 ids: [-2079853890,-2079853889] | fingersBefore: 1
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853889 pos: 269 628 scale: 0.81 | press# 10
+game.js? [sm]:493 [onTouchStart] fingersAfter: 2 added: 1
+game.js? [sm]:657 [snapshot] ✅ updated: 1 -> 2 ids: [-2079853890,-2079853889]
+game.js? [sm]:735 [countdown] ▶️ START, active: 2 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 10 release: 9 settle: 1 | mapSize: 2 active: 2 | snapshot: 2 snapshotAge: 6 | fingers: [{"id":-2079853890,"state":"alive","age":1044,"sinceRemove":0,"x":81,"y":676},{"id":-2079853889,"state":"spawning","age":6,"sinceRemove":0,"x":269,"y":628}]
+game.js? [sm]:529 [onTouchEnd] triggered
+game.js? [sm]:549 [handleTouchRemove] ⬆️ ENTER source: touchend | changed: 1 ids: [-2079853889] | allTouches: 1 ids: [-2079853890] | fingersBefore: 2
+game.js? [sm]:564 [handleTouchRemove] 🔽 mark despawning id: -2079853889 age: 446 ms | release# 10
+game.js? [sm]:657 [snapshot] ✅ updated: 2 -> 1 ids: [-2079853890]
+game.js? [sm]:858 [handleTouchRemove] ⬆️ EXIT marked: 1 unknown: 0 activeAfter: 1 mapSize: 2
+game.js? [sm]:595 [handleTouchRemove] activeFingers < 2 , clear countdown
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:885 [dump] after-touchremove | press: 10 release: 10 settle: 1 | mapSize: 2 active: 1 | snapshot: 1 snapshotAge: 4 | fingers: [{"id":-2079853890,"state":"alive","age":1488,"sinceRemove":0,"x":81,"y":676},{"id":-2079853889,"state":"despawning","age":450,"sinceRemove":4,"x":269,"y":628}]
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853889 totalLife: 640 ms
+game.js? [sm]:885 [dump] heartbeat | press: 10 release: 10 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 527 | fingers: [{"id":-2079853890,"state":"alive","age":2011,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853888] | allTouches: 1 ids: [-2079853888] | fingersBefore: 1
+game.js? [sm]:434 [onTouchStart] ⚠️ SUSPECT TRUNCATED: allTouches: 1 < activeBefore + changed: 2 (典型第 6+ 指 iOS 截断场景)
+game.js? [sm]:696 [reconcile] ⚠️ SKIP allTouches incomplete, covered: 0 / active: 1 | allTouches: 1 ids: [-2079853888] | uncoveredActive: [-2079853890] (第 6+ 指 / 快照截断场景，保留 Map 不动以避免误杀)
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853888 pos: 117 458 scale: 0.84 | press# 11
+game.js? [sm]:493 [onTouchStart] fingersAfter: 2 added: 1
+game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 1 extra: 1 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:735 [countdown] ▶️ START, active: 2 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 11 release: 10 settle: 1 | mapSize: 2 active: 2 | snapshot: 1 snapshotAge: 1096 | fingers: [{"id":-2079853890,"state":"alive","age":2580,"sinceRemove":0,"x":81,"y":676},{"id":-2079853888,"state":"spawning","age":4,"sinceRemove":0,"x":117,"y":458}]
+game.js? [sm]:327 [watchdog] 👻 ghost detected & despawned: [{"id":-2079853888,"age":402,"state":"alive"}] | snapshotIds: [-2079853890] | snapshotAge: 1494 ms | release# 11
+game.js? [sm]:885 [dump] heartbeat | press: 11 release: 11 settle: 1 | mapSize: 2 active: 1 | snapshot: 1 snapshotAge: 1527 | fingers: [{"id":-2079853890,"state":"alive","age":3011,"sinceRemove":0,"x":81,"y":676},{"id":-2079853888,"state":"despawning","age":435,"sinceRemove":33,"x":117,"y":458}]
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853887] | allTouches: 2 ids: [-2079853888,-2079853887] | fingersBefore: 2
+game.js? [sm]:696 [reconcile] ⚠️ SKIP allTouches incomplete, covered: 0 / active: 1 | allTouches: 2 ids: [-2079853888,-2079853887] | uncoveredActive: [-2079853890] (第 6+ 指 / 快照截断场景，保留 Map 不动以避免误杀)
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853887 pos: 278 634 scale: 0.84 | press# 12
+game.js? [sm]:493 [onTouchStart] fingersAfter: 3 added: 1
+game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 2 extra: 1 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:735 [countdown] ▶️ START, active: 2 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 12 release: 11 settle: 1 | mapSize: 3 active: 2 | snapshot: 1 snapshotAge: 1617 | fingers: [{"id":-2079853890,"state":"alive","age":3101,"sinceRemove":0,"x":81,"y":676},{"id":-2079853888,"state":"despawning","age":525,"sinceRemove":123,"x":117,"y":458},{"id":-2079853887,"state":"spawning","age":6,"sinceRemove":0,"x":278,"y":634}]
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853888 totalLife: 585 ms
+3game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 2 extra: 0 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:327 [watchdog] 👻 ghost detected & despawned: [{"id":-2079853887,"age":400,"state":"alive"}] | snapshotIds: [-2079853890] | snapshotAge: 2011 ms | release# 12
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853886] | allTouches: 3 ids: [-2079853888,-2079853887,-2079853886] | fingersBefore: 2
+game.js? [sm]:696 [reconcile] ⚠️ SKIP allTouches incomplete, covered: 0 / active: 1 | allTouches: 3 ids: [-2079853888,-2079853887,-2079853886] | uncoveredActive: [-2079853890] (第 6+ 指 / 快照截断场景，保留 Map 不动以避免误杀)
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853886 pos: 104 281 scale: 0.91 | press# 13
+game.js? [sm]:493 [onTouchStart] fingersAfter: 3 added: 1
+game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 3 extra: 1 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:735 [countdown] ▶️ START, active: 2 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 13 release: 12 settle: 1 | mapSize: 3 active: 2 | snapshot: 1 snapshotAge: 2163 | fingers: [{"id":-2079853890,"state":"alive","age":3647,"sinceRemove":0,"x":81,"y":676},{"id":-2079853887,"state":"despawning","age":552,"sinceRemove":152,"x":278,"y":634},{"id":-2079853886,"state":"spawning","age":3,"sinceRemove":0,"x":104,"y":281}]
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853887 totalLife: 583 ms
+game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 3 extra: 0 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853885] | allTouches: 4 ids: [-2079853888,-2079853887,-2079853886,-2079853885] | fingersBefore: 2
+game.js? [sm]:696 [reconcile] ⚠️ SKIP allTouches incomplete, covered: 1 / active: 2 | allTouches: 4 ids: [-2079853888,-2079853887,-2079853886,-2079853885] | uncoveredActive: [-2079853890] (第 6+ 指 / 快照截断场景，保留 Map 不动以避免误杀)
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853885 pos: 275 406 scale: 0.91 | press# 14
+game.js? [sm]:493 [onTouchStart] fingersAfter: 3 added: 1
+game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 4 extra: 1 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:735 [countdown] ▶️ START, active: 3 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 14 release: 12 settle: 1 | mapSize: 3 active: 3 | snapshot: 1 snapshotAge: 2500 | fingers: [{"id":-2079853890,"state":"alive","age":3984,"sinceRemove":0,"x":81,"y":676},{"id":-2079853886,"state":"alive","age":340,"sinceRemove":0,"x":104,"y":281},{"id":-2079853885,"state":"spawning","age":6,"sinceRemove":0,"x":275,"y":406}]
+game.js? [sm]:885 [dump] heartbeat | press: 14 release: 12 settle: 1 | mapSize: 3 active: 3 | snapshot: 1 snapshotAge: 2527 | fingers: [{"id":-2079853890,"state":"alive","age":4011,"sinceRemove":0,"x":81,"y":676},{"id":-2079853886,"state":"alive","age":367,"sinceRemove":0,"x":104,"y":281},{"id":-2079853885,"state":"spawning","age":33,"sinceRemove":0,"x":275,"y":406}]
+2game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 4 extra: 0 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:327 [watchdog] 👻 ghost detected & despawned: [{"id":-2079853886,"age":401,"state":"alive"}] | snapshotIds: [-2079853890] | snapshotAge: 2561 ms | release# 13
+2game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 4 extra: 0 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:428 [onTouchStart] ⬇️ ENTER | changed: 1 ids: [-2079853884] | allTouches: 5 ids: [-2079853888,-2079853887,-2079853886,-2079853885,-2079853884] | fingersBefore: 3
+game.js? [sm]:696 [reconcile] ⚠️ SKIP allTouches incomplete, covered: 1 / active: 2 | allTouches: 5 ids: [-2079853888,-2079853887,-2079853886,-2079853885,-2079853884] | uncoveredActive: [-2079853890] (第 6+ 指 / 快照截断场景，保留 Map 不动以避免误杀)
+game.js? [sm]:489 [onTouchStart] ✅ ADD id: -2079853884 pos: 317 252 scale: 0.94 | press# 15
+game.js? [sm]:493 [onTouchStart] fingersAfter: 4 added: 1
+game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 5 extra: 1 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:735 [countdown] ▶️ START, active: 3 durationMs: 3000 winnerCount: 1
+game.js? [sm]:885 [dump] after-touchstart | press: 15 release: 13 settle: 1 | mapSize: 4 active: 3 | snapshot: 1 snapshotAge: 2640 | fingers: [{"id":-2079853890,"state":"alive","age":4124,"sinceRemove":0,"x":81,"y":676},{"id":-2079853886,"state":"despawning","age":480,"sinceRemove":79,"x":108,"y":290},{"id":-2079853885,"state":"spawning","age":146,"sinceRemove":0,"x":275,"y":406},{"id":-2079853884,"state":"spawning","age":6,"sinceRemove":0,"x":317,"y":252}]
+5game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 5 extra: 0 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853886 totalLife: 584 ms
+game.js? [sm]:534 [onTouchCancel] triggered
+game.js? [sm]:549 [handleTouchRemove] ⬆️ ENTER source: touchcancel | changed: 5 ids: [-2079853888,-2079853887,-2079853886,-2079853885,-2079853884] | allTouches: 0 ids: [] | fingersBefore: 3
+game.js? [sm]:568 [handleTouchRemove] ⚠️ unknown id in changed: -2079853888 (not in fingers Map, 可能早已被 watchdog 清理)
+game.js? [sm]:568 [handleTouchRemove] ⚠️ unknown id in changed: -2079853887 (not in fingers Map, 可能早已被 watchdog 清理)
+game.js? [sm]:568 [handleTouchRemove] ⚠️ unknown id in changed: -2079853886 (not in fingers Map, 可能早已被 watchdog 清理)
+game.js? [sm]:564 [handleTouchRemove] 🔽 mark despawning id: -2079853885 age: 274 ms | release# 14
+game.js? [sm]:564 [handleTouchRemove] 🔽 mark despawning id: -2079853884 age: 134 ms | release# 15
+game.js? [sm]:648 [snapshot] ⚠️ SKIP incomplete: allTouches: 0 extra: 0 uncovered: 1 uncoveredIds: [-2079853890] (保留旧快照，watchdog 暂时失效以避免误杀)
+game.js? [sm]:696 [reconcile] ⚠️ SKIP allTouches incomplete, covered: 0 / active: 1 | allTouches: 0 ids: [] | uncoveredActive: [-2079853890] (第 6+ 指 / 快照截断场景，保留 Map 不动以避免误杀)
+game.js? [sm]:858 [handleTouchRemove] ⬆️ EXIT marked: 2 unknown: 3 activeAfter: 1 mapSize: 3
+game.js? [sm]:595 [handleTouchRemove] activeFingers < 2 , clear countdown
+game.js? [sm]:746 [countdown] ⏹ clear pending timer
+game.js? [sm]:885 [dump] after-touchremove | press: 15 release: 15 settle: 1 | mapSize: 3 active: 1 | snapshot: 1 snapshotAge: 2773 | fingers: [{"id":-2079853890,"state":"alive","age":4257,"sinceRemove":0,"x":81,"y":676},{"id":-2079853885,"state":"despawning","age":279,"sinceRemove":5,"x":275,"y":406},{"id":-2079853884,"state":"despawning","age":139,"sinceRemove":5,"x":317,"y":252}]
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853885 totalLife: 467 ms
+game.js? [sm]:369 [render] 🗑️ despawn animation done, delete id: -2079853884 totalLife: 327 ms
+game.js? [sm]:885 [dump] heartbeat | press: 15 release: 15 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 3528 | fingers: [{"id":-2079853890,"state":"alive","age":5012,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:885 [dump] heartbeat | press: 15 release: 15 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 4528 | fingers: [{"id":-2079853890,"state":"alive","age":6012,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:885 [dump] heartbeat | press: 15 release: 15 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 5528 | fingers: [{"id":-2079853890,"state":"alive","age":7012,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:885 [dump] heartbeat | press: 15 release: 15 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 6528 | fingers: [{"id":-2079853890,"state":"alive","age":8012,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:885 [dump] heartbeat | press: 15 release: 15 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 7528 | fingers: [{"id":-2079853890,"state":"alive","age":9012,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:885 [dump] heartbeat | press: 15 release: 15 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 8528 | fingers: [{"id":-2079853890,"state":"alive","age":10012,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:885 [dump] heartbeat | press: 15 release: 15 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 9528 | fingers: [{"id":-2079853890,"state":"alive","age":11012,"sinceRemove":0,"x":81,"y":676}]
+game.js? [sm]:885 [dump] heartbeat | press: 15 release: 15 settle: 1 | mapSize: 1 active: 1 | snapshot: 1 snapshotAge: 10529 | fingers: [{"id":-2079853890,"state":"alive","age":12013,"sinceRemove":0,"x":81,"y":676}]

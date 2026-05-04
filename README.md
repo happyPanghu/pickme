@@ -125,6 +125,120 @@ t=1000~1700  "铺屏"阶段（700ms）
 
 **衔接设计**：flooding 起始半径 = `FINGER_RADIUS × VICTORY_MAX_SCALE × sizeScale`，与 victory 阶段最终大小对齐，视觉上无跳变。
 
+### 4. 多赢家 Voronoi 铺屏（核心算法）
+
+当设置多个赢家（如 winnerCount=2）时，结算铺屏需要**每个赢家各占 1/N 屏幕**。最公平、最自然的分法是 **Voronoi 图**——每个像素染成"离它最近的赢家的颜色"。
+
+为什么不用像素级 ImageData？
+
+- **像素遍历方案**：每帧 O(屏幕像素数 × N)，即便降采样到 1/8，仍是 50×80×10 ≈ 40k 像素/帧，外加 `putImageData + drawImage` 的开销
+- **多边形裁剪方案（已采纳）**：每帧 O(N² × V)，N≤10, V≤10 → 约 1000 次浮点运算/帧
+- 多边形方案只依赖 `ctx.clip`、`moveTo`、`lineTo` 这些 Canvas 2D 基础 API，**所有基础库版本都稳定**，无兼容性风险
+
+**数学原理**：点 P 到 A 比到 B 更近 ⇔ |PA|² ≤ |PB|²
+
+展开后化简为一个**线性不等式**（AB 连线的中垂线半平面）：
+
+```
+nx · Px + ny · Py ≤ d
+    其中  nx = Bx - Ax
+          ny = By - Ay
+          d  = (Bx² + By² - Ax² - Ay²) / 2
+```
+
+**Sutherland-Hodgman 算法**：从屏幕矩形（4 个顶点）出发，对每个赢家 wi，依次用 wi 与其他所有 wj 的中垂线半平面裁剪当前多边形，每次裁剪 O(V)，总复杂度 O(N² × V)。最终每个赢家拿到自己的 Voronoi 单元凸多边形。
+
+```js
+for (let i = 0; i < winners.length; i++) {
+  let poly = screenRect;  // 初始：整屏矩形
+  for (let j = 0; j < winners.length; j++) {
+    if (i === j) continue;
+    // 保留"靠近 wi"的一侧
+    poly = clipPolygonByHalfplaneCloserTo(poly, wi.x, wi.y, wj.x, wj.y);
+  }
+  ctx.save();
+  ctx.beginPath(); /* moveTo + lineTo 走一圈 poly */ ctx.clip();
+  drawCircle(ctx, wi.x, wi.y, r, wi.color, 1, dpr);  // 在 clip 内扩散
+  ctx.restore();
+}
+```
+
+**边界情况处理**：
+
+- 两个赢家坐标重合（两指按在同一点）：法向量为零，通过 `EPSILON` 判断退化，直接返回原多边形不裁剪
+- 裁剪结果少于 3 个顶点：跳过该赢家这一帧的绘制
+- finger 坐标字段无效：`pickWinners` 构建 snapshot 时 filter 掉
+
+### 5. 颜色生成：HSL 程序化
+
+早期版本用了 12 色固定调色盘，用户反馈"老是那几个"。改为 HSL 色彩空间程序化生成：
+
+```js
+function randomColor() {
+  let hue;
+  for (let i = 0; i < 8; i++) {
+    hue = Math.random() * 360;
+    // 与上一次选用的色相保持至少 40° 距离（色相圆上的最短弧）
+    if (_lastHue < 0 || hueDistance(hue, _lastHue) >= 40) break;
+  }
+  _lastHue = hue;
+  const s = 75 + Math.random() * 25;  // 饱和度 75~100
+  const l = 55 + Math.random() * 15;  // 亮度 55~70（黑底清晰可见）
+  return hslToRgbString(hue, s, l);
+}
+```
+
+- **为什么是 HSL 不是 RGB**：HSL 能独立控制"色相 / 饱和度 / 亮度"，轻松锁定"鲜艳且在黑底上可见"的色域
+- **为什么限制相邻色相距离 ≥40°**：防止连续出现的两根手指颜色过于相近（例如两种"橙色"）
+- **亮度范围 55~70**：不要过暗（黑底看不清）也不要过亮（偏白色失去辨识度）
+
+理论上可生成 ∞ 种颜色，彻底解决"老是那几个"的视觉疲劳。
+
+### 6. DPR 适配：为什么不用 `ctx.scale`
+
+微信小程序 Canvas 2D 的标准 DPR 适配做法有两种：
+
+- **方案 A**：`canvas.width = cssWidth × dpr`，然后 `ctx.scale(dpr, dpr)`，后续代码用 CSS 像素坐标
+- **方案 B**：`canvas.width = cssWidth × dpr`，不调用 `ctx.scale`，绘制时所有坐标手动乘 dpr
+
+**本项目选择方案 B**，原因：
+
+1. **真机兼容性**：部分安卓机型上 `ctx.scale` 与 `rAF` 多帧绘制时偶发"坐标漂移"——第一帧按 scale 后坐标绘制，第二帧像没 scale 过（已确认是基础库 bug）
+2. **避坑开发历史**：此前用方案 A 时遇到过"第一局正常、第二局只画一个圆"的 bug，根因是 `ctx.scale` 状态在某次 `clearRect` 后被重置，多次 `save/restore` 又让状态不稳定
+
+所以 `drawCircle(ctx, x, y, r, color, alpha, dpr)` 的签名最后一个参数是 `dpr`，所有内部绘制 `arc(x*dpr, y*dpr, r*dpr, …)` **显式乘 dpr**。代码明确、可预期。
+
+### 7. Canvas 加法混色（重叠效果）
+
+画 alive 状态的圆时，设置：
+
+```js
+ctx.globalCompositeOperation = 'lighter';
+```
+
+这是 W3C Canvas 规范里的**加法混合**：重叠区域的颜色 = 两圆颜色的 RGB 分量相加并 clamp 到 255。
+
+- 红(255,0,0) + 绿(0,255,0) = 黄(255,255,0) ✅
+- 红(255,0,0) + 蓝(0,0,255) = 品红(255,0,255) ✅
+
+效果：两个手指圆交叉时，重叠处呈现鲜艳的第三种颜色，非常有"霓虹光晕"的观感。
+
+**但在 flooding 阶段不能用 lighter**——否则两个赢家铺屏区域相邻时边界会"白一道"（RGB 相加超过 255）。所以 render 的 flooding 分支一开始就把混合模式切回 `source-over`。
+
+---
+
+## 🐛 踩坑记录
+
+开发过程中遇到的典型 bug 和修复：
+
+| 现象 | 根因 | 修复 |
+|---|---|---|
+| 第二局只有 1 个圆 | `fingers` Map 的初始化在 `onReady` 里，`resetGame` 后没重建 | 移到 `onLoad` 一次初始化 |
+| 第 6 指按下后**所有圆消失** | iOS `e.touches` 只返回 5 个，`reconcileFingersWith` 误判其他 5 个为幽灵 | `reconcile` 仅在 `e.touches` 完整覆盖 Map 时才生效 + watchdog 兜底 |
+| 快速点击后残留圆圈 | touchstart 到达但对应 touchend 丢失 | watchdog：rAF 循环每帧巡检，创建 >400ms 且不在快照里就 despawn |
+| 按钮点击时生成了圆圈 | 按钮 touchstart 冒泡到 stage | 按钮用 `catchtouchstart`（阻止冒泡）+ `bindtap`（兜底） |
+| 刘海屏遮挡顶部提示 | 用了硬编码 padding | 改为 `calc(env(safe-area-inset-top) + 40rpx)` |
+
 ---
 
 ## 🧪 开发与测试

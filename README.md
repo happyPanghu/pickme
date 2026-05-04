@@ -236,7 +236,7 @@ ctx.globalCompositeOperation = 'lighter';
 | 第二局只有 1 个圆 | `fingers` Map 的初始化在 `onReady` 里，`resetGame` 后没重建 | 移到 `onLoad` 一次初始化 |
 | 第 6 指按下后**所有圆消失** | iOS `e.touches` 只返回 5 个，`reconcileFingersWith` 误判其他 5 个为幽灵 | `reconcile` 仅在 `e.touches` 完整覆盖 Map 时才生效 + watchdog 兜底 |
 | 快速点击后残留圆圈 | touchstart 到达但对应 touchend 丢失 | watchdog：rAF 循环每帧巡检，创建 >400ms 且不在快照里就 despawn |
-| 按钮点击时生成了圆圈 | 按钮 touchstart 冒泡到 stage | 按钮用 `catchtouchstart`（阻止冒泡）+ `bindtap`（兜底） |
+| 按钮点击时生成了圆圈 / +/− 按钮点击无响应 | 祖先节点的 `catchtouchstart` 会打断微信 tap 事件合成，导致子节点 `bindtap` 永远不触发 | 移除所有 `catchtouchstart` 拦截，改在 `stage.onTouchStart` 里按坐标过滤：触摸点落在顶部/底部 HUD 区域时不生成圆 |
 | 刘海屏遮挡顶部提示 | 用了硬编码 padding | 改为 `calc(env(safe-area-inset-top) + 40rpx)` |
 
 ---

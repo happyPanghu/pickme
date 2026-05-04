@@ -4,7 +4,12 @@
     1. .stage        ：全屏黑底 / flooding 时变成赢家色（通过 data 绑定）
     2. canvas#stage  ：负责画所有手指圆、呼吸动画、结算强调、铺屏分区等
     3. .hud          ：顶部提示 + 底部赢家数控制栏；flash=true 时底栏加上快速闪烁类
-  触摸事件全挂在 .stage 层上，冒泡到 page 级别；控件区（.hud-bottom）用 catch 吃掉触摸不生成圆。
+
+  触摸事件分发策略（血泪教训）：
+    × 历史方案：在 .hud-top / .winner-ctrl 等控件外壳上挂 catchtouchstart="noop"
+       问题：祖先节点的 catchtouchstart 会打断微信 tap 事件合成，导致子按钮的 bindtap 永远不触发
+    ✓ 当前方案：wxml 不做任何事件拦截；stage 的 onTouchStart 内用坐标判断兜底
+       —— 触摸点落在顶部 HUD / 底部赢家数控件区域时直接忽略，不生成手指圆
 -->
 <view
   class="stage {{flooding ? 'stage-flooding' : ''}}"
@@ -21,20 +26,17 @@
     disable-scroll="true"
   ></canvas>
 
-  <!-- HUD：顶部提示。文案/情绪由 _computeHint 统一计算，通过 hintMood class 切换样式 -->
-  <view class="hud hud-top" catchtouchstart="noop">
+  <!-- HUD：顶部提示 -->
+  <view class="hud hud-top">
     <view class="hint hint-{{hintMood}}">{{hintText}}</view>
   </view>
 
-  <!-- HUD：底部赢家数控制栏（flooding 时隐藏，避免挡住胜利画面）
-       ⚠️ 注意：这一层不挂 catchtouchstart，也不响应触摸（wxss 里 pointer-events:none），
-       事件拦截收敛到"真正要交互的控件"上。否则全宽 bar 会把 stage 的触摸吃掉。 -->
+  <!-- HUD：底部赢家数控制栏（flooding 时隐藏，避免挡住胜利画面） -->
   <view class="hud hud-bottom {{flashing ? 'hud-flashing' : ''}}" wx:if="{{!flooding}}">
-    <view class="winner-ctrl" catchtouchstart="noop">
+    <view class="winner-ctrl">
       <view
         class="btn {{winnerCount <= 1 ? 'btn-disabled' : ''}}"
         bindtap="onDecWinner"
-        catchtouchstart="onDecTouch"
       >−</view>
       <view class="winner-label">
         <text class="winner-num">{{winnerCount}}</text>
@@ -43,7 +45,6 @@
       <view
         class="btn"
         bindtap="onIncWinner"
-        catchtouchstart="onIncTouch"
       >+</view>
     </view>
   </view>

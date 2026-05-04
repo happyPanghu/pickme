@@ -30,9 +30,6 @@ const COUNTDOWN_MS = 4000;
 const SHOWDOWN_MS = 1000;
 // 抉择候选固定 2 人（规则：不管赢家数多少，视觉统一）
 const SHOWDOWN_CANDIDATES = 2;
-// 胜利音提前量：倒计时剩余 ≤ 该毫秒数时预播胜利音，让音效比视觉揭晓早一点响起。
-// 注意：这个值独立于 SHOWDOWN_MS，改这个只动音效节奏，不改视觉闪烁的时间窗。
-const VICTORY_AUDIO_LEAD_MS = 500;
 const VICTORY_HOLD_MS = 1000;
 const FLOOD_DURATION_MS = 700;
 // 铺屏完成后停留时长：给玩家看清赢家的短暂喘息，然后自动回到初始黑色画面。
@@ -56,6 +53,19 @@ Page({
 
   // ---------------- 生命周期 ----------------
   onLoad() {
+    // 0. 缓存窗口尺寸（onTouchStart 要用 windowHeight 做 HUD 区域判定）
+    // 注意：getSystemInfoSync 在基础库 2.20+ 被标记为"已废弃，建议用 getWindowInfo"，
+    //       但老版本兼容性更好。这里优先新 API，兜底老 API。
+    try {
+      if (wx.getWindowInfo) {
+        this._systemInfo = wx.getWindowInfo();
+      } else {
+        this._systemInfo = wx.getSystemInfoSync();
+      }
+    } catch (_) {
+      this._systemInfo = { windowHeight: 0, windowWidth: 0 };
+    }
+
     // 1. 核心状态
     this.store = createStore();
     this.strategy = RandomStrategy();
@@ -127,15 +137,45 @@ Page({
   },
 
   // ---------------- WXML 事件入口 ----------------
-  onTouchStart(e) { this.touch.onTouchStart(e); },
+  //
+  // 为什么不在 wxml 上挂 catchtouchstart 拦截 HUD 区域？
+  //   祖先节点的 catchtouchstart 会打断微信 tap 事件合成，导致子节点 bindtap 失效。
+  //   改为在 stage 层按坐标过滤：触摸点落在顶部/底部 HUD 区域则忽略，不生成手指圆。
+  onTouchStart(e) {
+    const changed = (e && e.changedTouches) || [];
+    const winH = (this._systemInfo && this._systemInfo.windowHeight) || 0;
+    // 命中 HUD 区域的 touch id 收集起来，转发前从 changedTouches 里剔除
+    const hudIds = new Set();
+    for (let i = 0; i < changed.length; i++) {
+      const t = changed[i];
+      const y = (typeof t.clientY === 'number') ? t.clientY : t.pageY;
+      if (this._isInHudArea(y, winH)) hudIds.add(t.identifier);
+    }
+    if (hudIds.size === 0) {
+      this.touch.onTouchStart(e);
+      return;
+    }
+    // 有部分 touch 落在 HUD 区：过滤后再转发（允许同时还有真正落在 stage 的其它指）
+    const filteredChanged = [];
+    for (let i = 0; i < changed.length; i++) {
+      if (!hudIds.has(changed[i].identifier)) filteredChanged.push(changed[i]);
+    }
+    if (filteredChanged.length === 0) return; // 全部都在 HUD 区，直接忽略
+    const filteredEvent = Object.assign({}, e, { changedTouches: filteredChanged });
+    this.touch.onTouchStart(filteredEvent);
+  },
   onTouchMove(e)  { this.touch.onTouchMove(e); },
   onTouchEnd(e)   { this.touch.onTouchEnd(e); },
   onTouchCancel(e){ this.touch.onTouchCancel(e); },
 
-  noop() { /* 吃掉控件区的触摸事件，避免冒泡到 stage */ },
-
-  onIncTouch() { /* 不在按钮上生成圆，仅吃事件 */ },
-  onDecTouch() { /* 同上 */ },
+  // 判断触摸 y 坐标是否落在 HUD 交互区（顶部提示条 + 底部赢家数控件）
+  // 区域宽松一点避免按钮边缘漏判，但不宜太大避免把 stage 中心的可按区域吃掉
+  _isInHudArea(y, winH) {
+    if (typeof y !== 'number' || !winH) return false;
+    const TOP_HUD_BOTTOM = 180;   // 顶部提示条大约占到 y ≈ 120+60 以内
+    const BOTTOM_HUD_TOP = 140;   // 底部控件大约占据屏幕底部 140px 高度
+    return y <= TOP_HUD_BOTTOM || y >= winH - BOTTOM_HUD_TOP;
+  },
 
   onIncWinner() {
     if (this._stage !== 'idle') return; // 结算中不允许改
@@ -202,8 +242,6 @@ Page({
     this._refreshHint();
     // 倒计时音完全跟随倒计时生命周期：这里启动就从头播
     this.audio.playCountdown();
-    // 标志位：本轮倒计时是否已经预播过胜利音。_clearCountdown / _resetGame 会重置。
-    this._victoryAudioPlayed = false;
 
     // 用一个轻量的 interval 更新 flash 状态 + 提示文案 + 阶段推进
     this._countdownTimer = setInterval(() => {
@@ -218,26 +256,14 @@ Page({
         this._enterShowdown();
       }
 
-      // 倒计时剩余 ≤ VICTORY_AUDIO_LEAD_MS 且本轮还没播 → 预播胜利音
-      // 独立于 showdown 的视觉节奏：视觉在最后 1s 闪烁，音效在最后 0.5s 才响起
-      if (!this._victoryAudioPlayed && remaining <= VICTORY_AUDIO_LEAD_MS) {
-        this._victoryAudioPlayed = true;
-        this.audio.playVictory();
-      }
-
       if (remaining <= 0) {
-        // 正常到期结算：此时胜利音一定已经预播了（0.5s 前那个分支先命中），
-        // 所以传 keepVictoryAudio=true 让胜利音继续放完
-        this._clearCountdown({ keepVictoryAudio: true });
+        this._clearCountdown();
         this._enterVictory();
       }
     }, 50);
   },
 
-  // opts.keepVictoryAudio：
-  //   true  → 正常结算路径（interval 走到 0），胜利音要继续放
-  //   false → 游戏被中止（人数破线 / onUnload / _resetGame），胜利音要立即停
-  _clearCountdown(opts) {
+  _clearCountdown() {
     if (this._countdownTimer) {
       clearInterval(this._countdownTimer);
       this._countdownTimer = null;
@@ -247,11 +273,6 @@ Page({
     if (this.data.countingDown) this.setData({ countingDown: false });
     // 倒计时音跟随倒计时状态：倒计时一结束（无论是被取消还是到期），音效立即停
     if (this.audio) this.audio.stopCountdown();
-    // 胜利音：只有"被中止"路径需要掐断已经预播的胜利音
-    const keep = opts && opts.keepVictoryAudio;
-    if (!keep && this._victoryAudioPlayed && this.audio) {
-      this.audio.stopVictory();
-    }
   },
 
   // ---------------- 提示文案 ----------------
@@ -364,8 +385,8 @@ Page({
     this._stage = 'victory';
     this._victoryStartedAt = Date.now();
     this.haptic.heavy();
-    // 胜利音已在 _enterShowdown（提前 1s）触发过，这里不再重播，
-    // 让它自然放完即可（倒计时音已在 _clearCountdown 里停掉）
+    // 决出胜者：播胜利音（倒计时音已经在 _clearCountdown 里停过了）
+    this.audio.playVictory();
     this._refreshHint();
 
     // 1s 后进入 flooding
@@ -410,7 +431,6 @@ Page({
     this._duelIds = new Set();
     this._groups = [];
     this._countdownStartedAt = 0;
-    this._victoryAudioPlayed = false;
 
     this.touch.setGameEnded(false);
     this.touch.setGameLocked(false);

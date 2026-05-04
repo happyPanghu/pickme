@@ -19,14 +19,14 @@ const { createGhostWatchdog } = require('./touch/ghostWatchdog.js');
 const { createTouchHandler } = require('./touch/touchHandler.js');
 const { createRenderer } = require('./render/canvasRenderer.js');
 const { createHaptic } = require('./feedback/haptic.js');
-const { createAudio, SCHEMES: AUDIO_SCHEMES } = require('./feedback/audio.js');
+const { createAudio } = require('./feedback/audio.js');
 const { createFlashController } = require('./feedback/flash.js');
 
 // 游戏规则参数
 const MIN_PLAYERS = 2;
-const COUNTDOWN_MS = 3000;
+// 倒计时总时长：4s（前 3s 正常呼吸，最后 1s 抉择阶段闪烁）
+const COUNTDOWN_MS = 4000;
 // 抉择阶段：倒计时剩余 ≤ SHOWDOWN_MS 时进入。
-// 即：倒计时前 2 秒正常呼吸，最后 1 秒是 2 人高频 ping-pong 闪烁。
 const SHOWDOWN_MS = 1000;
 // 抉择候选固定 2 人（规则：不管赢家数多少，视觉统一）
 const SHOWDOWN_CANDIDATES = 2;
@@ -48,10 +48,7 @@ Page({
     flashing: false,
     // 顶部提示：文案 + 情绪样式 class
     hintText: '把手指放上来',
-    hintMood: 'calm',
-    // 音效主题切换按钮的显示状态（label + icon 组合渲染）
-    audioSchemeLabel: '经典',
-    audioSchemeIcon: '🔔'
+    hintMood: 'calm'
   },
 
   // ---------------- 生命周期 ----------------
@@ -89,15 +86,7 @@ Page({
 
     // 4. 反馈
     this.haptic = createHaptic();
-    // 从 storage 读上次选择的音效主题（兜底 classic）
-    let savedScheme = '';
-    try { savedScheme = wx.getStorageSync('audioScheme') || ''; } catch (_) { /* noop */ }
-    this.audio = createAudio({ scheme: savedScheme });
-    const scheme0 = this.audio.getScheme();
-    this.setData({
-      audioSchemeLabel: scheme0.label,
-      audioSchemeIcon: scheme0.icon
-    });
+    this.audio = createAudio();
     this.flash = createFlashController((v) => {
       if (this.data.flashing !== v) this.setData({ flashing: v });
     });
@@ -108,11 +97,11 @@ Page({
       watchdog: this.watchdog,
       hooks: {
         onFingerAdded: () => {
+          // 按下仅震动；音效已改为统一的胜利/倒计时音，由 _startCountdown/_enterVictory 驱动
           this.haptic.light();
-          this.audio.playTap();
         },
         onFingerRemoved: () => {
-          // 抬手时不震不响，避免体感吵
+          // 抬手不震不响
         },
         onActiveCountChanged: () => this._onActiveCountMaybeChanged('touch-event'),
         onGameShouldReset: () => this._resetGame()
@@ -144,21 +133,6 @@ Page({
 
   onIncTouch() { /* 不在按钮上生成圆，仅吃事件 */ },
   onDecTouch() { /* 同上 */ },
-  onSchemeTouch() { /* 同上：按钮区不生成手指圆 */ },
-
-  // 循环切换音效主题：点击 → 切到下一套 → 立刻试播一次点击音 → 写回 storage
-  onSchemeTap() {
-    if (this._stage !== 'idle') return; // 结算中不切，避免音频冲突
-    const next = this.audio.cycleScheme();
-    this.setData({
-      audioSchemeLabel: next.label,
-      audioSchemeIcon: next.icon
-    });
-    this.haptic.light();
-    // 立刻播一次新主题的 tap，让用户听到切换效果
-    this.audio.playTap();
-    try { wx.setStorageSync('audioScheme', next.id); } catch (_) { /* noop */ }
-  },
 
   onIncWinner() {
     if (this._stage !== 'idle') return; // 结算中不允许改
@@ -196,19 +170,25 @@ Page({
       return;
     }
 
-    // 手指数 ≥ MIN_PLAYERS：任何变化都重置倒计时从头开始
-    // （规则要求："有人新加入 → 倒计时从头开始"；"有人提前抬手但剩余仍 ≥ 2 → 倒计时继续不重置"
-    //   但我们统一用"增加重置 / 减少但仍 ≥ 2 不重置"的策略。用 extra.delta 区分。）
+    // 手指数 ≥ MIN_PLAYERS：
+    //   - 新增 / 初次达标 → 重置倒计时从头开始
+    //   - 减少但仍 ≥ 2   → 倒计时继续，不重置（保留已经过去的进度，玩家体验好）
+    //
+    // 音效规则（用户明确要求）：任何"玩家加入或退出"都要重新播放胜利音。
+    //   - 新增分支：_startCountdown 内部已经 play() 过，不用额外播
+    //   - 减少但仍满员分支：倒计时没重置，但音效必须重播 → 这里单独调一次 play()
     if (extra && typeof extra.delta === 'number' && extra.delta < 0) {
-      // 仅减少但仍 ≥ 2 → 倒计时继续，不重置
       if (this._countdownStartedAt === 0) {
+        // 退出后又满员（理论上只有 watchdog 扫出来的边缘情况），走重置路径
         this._startCountdown();
       } else {
+        // 倒计时继续，音效从头重播
+        this.audio.play();
         this._refreshHint();
       }
       return;
     }
-    // 新增 或 watchdog 触发的变化 或 初次达标 → 重置
+    // 新增 或 watchdog 触发的变化 或 初次达标 → 重置倒计时（_startCountdown 内会 play）
     this._startCountdown();
   },
 
@@ -217,6 +197,9 @@ Page({
     this._countdownStartedAt = Date.now();
     this.setData({ countingDown: true });
     this._refreshHint();
+    // 规则：倒计时启动 / 玩家加入 / 玩家退出（仍满员）都会重新跑 _startCountdown，
+    // 所以只需在这里 play() 一次，就覆盖了用户说的"进出重播"场景。
+    this.audio.play();
 
     // 用一个轻量的 interval 更新 flash 状态 + 提示文案 + 阶段推进
     this._countdownTimer = setInterval(() => {
@@ -356,6 +339,8 @@ Page({
     this._stage = 'victory';
     this._victoryStartedAt = Date.now();
     this.haptic.heavy();
+    // 胜利音：立刻从头播（如果倒计时阶段的播放还没放完会被打断重播）
+    this.audio.play();
     this._refreshHint();
 
     // 1s 后进入 flooding
@@ -370,7 +355,7 @@ Page({
     this.setData({ flooding: true, floodColor });
     this._refreshHint();
     this.haptic.long();
-    this.audio.playVictory();
+    // flooding 阶段不再额外触发音效：_enterVictory 刚刚已经 play 过，这里再播会打断自己
 
     // flooding 动画走完 → 允许用户按下重开（gameEnded），同时排队自动 reset。
     // 两条路径都会走 _resetGame（_resetGame 内部会清掉 _autoResetTimer 避免重复触发）。

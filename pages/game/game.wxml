@@ -28,7 +28,7 @@
 
   <!-- HUD：底部赢家数控制栏（flooding 时隐藏，避免挡住胜利画面）
        ⚠️ 注意：这一层不挂 catchtouchstart，也不响应触摸（wxss 里 pointer-events:none），
-       事件拦截收敛到内部两个"真正要交互的控件"上。否则全宽 bar 会把 stage 的触摸吃掉。 -->
+       事件拦截收敛到"真正要交互的控件"上。否则全宽 bar 会把 stage 的触摸吃掉。 -->
   <view class="hud hud-bottom {{flashing ? 'hud-flashing' : ''}}" wx:if="{{!flooding}}">
     <view class="winner-ctrl" catchtouchstart="noop">
       <view
@@ -45,16 +45,6 @@
         bindtap="onIncWinner"
         catchtouchstart="onIncTouch"
       >+</view>
-    </view>
-
-    <!-- 音效主题切换：胶囊小按钮，点一下循环切下一套并立刻试播一次 tap 音 -->
-    <view
-      class="scheme-btn"
-      bindtap="onSchemeTap"
-      catchtouchstart="onSchemeTouch"
-    >
-      <text class="scheme-icon">{{audioSchemeIcon}}</text>
-      <text class="scheme-label">{{audioSchemeLabel}}</text>
     </view>
   </view>
 </view>

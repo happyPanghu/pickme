@@ -1,5 +1,5 @@
 {
-  "description": "Chwazi 多人决策小游戏",
+  "description": "WhoFirst 多人决策小游戏",
   "packOptions": {
     "ignore": [],
     "include": []
@@ -41,7 +41,7 @@
   "compileType": "miniprogram",
   "libVersion": "3.0.0",
   "appid": "wxe136b61521fa47bb",
-  "projectname": "chwazi",
+  "projectname": "whofirst",
   "condition": {},
   "editorSetting": {
     "tabIndent": "insertSpaces",

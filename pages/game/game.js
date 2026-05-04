@@ -30,6 +30,9 @@ const COUNTDOWN_MS = 4000;
 const SHOWDOWN_MS = 1000;
 // 抉择候选固定 2 人（规则：不管赢家数多少，视觉统一）
 const SHOWDOWN_CANDIDATES = 2;
+// 胜利音提前量：倒计时剩余 ≤ 该毫秒数时预播胜利音，让音效比视觉揭晓早一点响起。
+// 注意：这个值独立于 SHOWDOWN_MS，改这个只动音效节奏，不改视觉闪烁的时间窗。
+const VICTORY_AUDIO_LEAD_MS = 500;
 const VICTORY_HOLD_MS = 1000;
 const FLOOD_DURATION_MS = 700;
 // 铺屏完成后停留时长：给玩家看清赢家的短暂喘息，然后自动回到初始黑色画面。
@@ -199,6 +202,8 @@ Page({
     this._refreshHint();
     // 倒计时音完全跟随倒计时生命周期：这里启动就从头播
     this.audio.playCountdown();
+    // 标志位：本轮倒计时是否已经预播过胜利音。_clearCountdown / _resetGame 会重置。
+    this._victoryAudioPlayed = false;
 
     // 用一个轻量的 interval 更新 flash 状态 + 提示文案 + 阶段推进
     this._countdownTimer = setInterval(() => {
@@ -208,19 +213,31 @@ Page({
       // _refreshHint 内部有差量比较，相同值不会触发 setData，不会有性能问题
       this._refreshHint();
 
-      // 倒计时剩余 ≤ SHOWDOWN_MS 且还在 idle → 切到抉择阶段
+      // 倒计时剩余 ≤ SHOWDOWN_MS 且还在 idle → 切到抉择阶段（视觉：2 人 ping-pong）
       if (this._stage === 'idle' && remaining <= SHOWDOWN_MS) {
         this._enterShowdown();
       }
 
+      // 倒计时剩余 ≤ VICTORY_AUDIO_LEAD_MS 且本轮还没播 → 预播胜利音
+      // 独立于 showdown 的视觉节奏：视觉在最后 1s 闪烁，音效在最后 0.5s 才响起
+      if (!this._victoryAudioPlayed && remaining <= VICTORY_AUDIO_LEAD_MS) {
+        this._victoryAudioPlayed = true;
+        this.audio.playVictory();
+      }
+
       if (remaining <= 0) {
-        this._clearCountdown();
+        // 正常到期结算：此时胜利音一定已经预播了（0.5s 前那个分支先命中），
+        // 所以传 keepVictoryAudio=true 让胜利音继续放完
+        this._clearCountdown({ keepVictoryAudio: true });
         this._enterVictory();
       }
     }, 50);
   },
 
-  _clearCountdown() {
+  // opts.keepVictoryAudio：
+  //   true  → 正常结算路径（interval 走到 0），胜利音要继续放
+  //   false → 游戏被中止（人数破线 / onUnload / _resetGame），胜利音要立即停
+  _clearCountdown(opts) {
     if (this._countdownTimer) {
       clearInterval(this._countdownTimer);
       this._countdownTimer = null;
@@ -230,6 +247,11 @@ Page({
     if (this.data.countingDown) this.setData({ countingDown: false });
     // 倒计时音跟随倒计时状态：倒计时一结束（无论是被取消还是到期），音效立即停
     if (this.audio) this.audio.stopCountdown();
+    // 胜利音：只有"被中止"路径需要掐断已经预播的胜利音
+    const keep = opts && opts.keepVictoryAudio;
+    if (!keep && this._victoryAudioPlayed && this.audio) {
+      this.audio.stopVictory();
+    }
   },
 
   // ---------------- 提示文案 ----------------
@@ -299,6 +321,8 @@ Page({
     // 锁死触摸：showdown 期间用户再按下的新指全部被忽略，候选集不可变
     this.touch.setGameLocked(true);
     this.haptic.medium();
+    // 胜利音不在 showdown 入口触发：已改由倒计时 interval 在剩 VICTORY_AUDIO_LEAD_MS 时
+    // 独立触发，这样视觉闪烁节奏（1s）和音效提前量（0.5s）可以独立调。
     this._refreshHint();
   },
 
@@ -340,8 +364,8 @@ Page({
     this._stage = 'victory';
     this._victoryStartedAt = Date.now();
     this.haptic.heavy();
-    // 决出胜者：播胜利音（倒计时音已经在 _clearCountdown 里停过了）
-    this.audio.playVictory();
+    // 胜利音已在 _enterShowdown（提前 1s）触发过，这里不再重播，
+    // 让它自然放完即可（倒计时音已在 _clearCountdown 里停掉）
     this._refreshHint();
 
     // 1s 后进入 flooding
@@ -386,6 +410,7 @@ Page({
     this._duelIds = new Set();
     this._groups = [];
     this._countdownStartedAt = 0;
+    this._victoryAudioPlayed = false;
 
     this.touch.setGameEnded(false);
     this.touch.setGameLocked(false);

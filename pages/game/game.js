@@ -182,8 +182,8 @@ Page({
         // 退出后又满员（理论上只有 watchdog 扫出来的边缘情况），走重置路径
         this._startCountdown();
       } else {
-        // 倒计时继续，音效从头重播
-        this.audio.play();
+        // 倒计时进度保留，但倒计时音从头重播（用户要求：进出都重播）
+        this.audio.playCountdown();
         this._refreshHint();
       }
       return;
@@ -197,9 +197,8 @@ Page({
     this._countdownStartedAt = Date.now();
     this.setData({ countingDown: true });
     this._refreshHint();
-    // 规则：倒计时启动 / 玩家加入 / 玩家退出（仍满员）都会重新跑 _startCountdown，
-    // 所以只需在这里 play() 一次，就覆盖了用户说的"进出重播"场景。
-    this.audio.play();
+    // 倒计时音完全跟随倒计时生命周期：这里启动就从头播
+    this.audio.playCountdown();
 
     // 用一个轻量的 interval 更新 flash 状态 + 提示文案 + 阶段推进
     this._countdownTimer = setInterval(() => {
@@ -229,6 +228,8 @@ Page({
     this._countdownStartedAt = 0;
     this.flash.stop();
     if (this.data.countingDown) this.setData({ countingDown: false });
+    // 倒计时音跟随倒计时状态：倒计时一结束（无论是被取消还是到期），音效立即停
+    if (this.audio) this.audio.stopCountdown();
   },
 
   // ---------------- 提示文案 ----------------
@@ -339,8 +340,8 @@ Page({
     this._stage = 'victory';
     this._victoryStartedAt = Date.now();
     this.haptic.heavy();
-    // 胜利音：立刻从头播（如果倒计时阶段的播放还没放完会被打断重播）
-    this.audio.play();
+    // 决出胜者：播胜利音（倒计时音已经在 _clearCountdown 里停过了）
+    this.audio.playVictory();
     this._refreshHint();
 
     // 1s 后进入 flooding

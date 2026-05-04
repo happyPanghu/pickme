@@ -1,57 +1,67 @@
-// 音效服务（简化版）：
+// 音效服务（双角色）：
 //
 // 业务规则（由 game.js 调用）：
-//   1. 倒计时启动 / 玩家加入 / 玩家退出 → 调 play()：从头重播一次
-//   2. 决出胜利 → 调 play()：同样从头重播一次（会打断倒计时阶段正在放的那次）
+//   1. 倒计时音（2063）：完全跟随倒计时的生命周期
+//        - 倒计时启动 / 玩家加入 / 玩家退出（仍满员）→ playCountdown() 从头重播
+//        - 倒计时取消（人数破线）/ 倒计时到期 / 进入胜利  → stopCountdown() 立即停
+//   2. 胜利音（231）：决出胜者时 playVictory() 从头播一次
 //
-// 换句话说：整个游戏过程中，音效总是被当前最新事件"抢占"从头播放。
-// 单实例够用；stop → seek(0) → play 三连保证每次都从 0 开始。
+// 这两条通道互相独立，各用一个 InnerAudioContext 实例。
+// 切换时互不打断对方（例如胜利音触发时，倒计时音由 game.js 显式 stopCountdown 掐掉）。
 //
-// 失败处理：onError 打 warn 日志，不抛出，游戏逻辑不受影响（比如文件缺失）。
+// 失败处理：onError 打 warn，不抛出，文件缺失时游戏继续能玩。
 
-// 唯一的音效文件：由用户指定。格式为 wav（小程序 InnerAudioContext 原生支持）。
-const AUDIO_SRC = '/assets/audio/classic/mixkit-completion-of-a-level-2063.wav';
+const COUNTDOWN_SRC = '/assets/audio/classic/mixkit-arcade-rising-231.wav';
+const VICTORY_SRC   = '/assets/audio/classic/mixkit-completion-of-a-level-2063.wav';
 
-function createAudio() {
-  let audio = null;
+function _createCtx(src, volume, label) {
+  let ctx = null;
   try {
-    audio = wx.createInnerAudioContext({ useWebAudioImplement: false });
-    audio.src = AUDIO_SRC;
-    audio.volume = 1.0;
-    audio.loop = false;
-    audio.autoplay = false;
-    audio.onError((err) => {
-      // 文件缺失 / 格式不支持时只 warn，游戏继续能玩
-      console.warn('[audio] error:', err);
+    ctx = wx.createInnerAudioContext({ useWebAudioImplement: false });
+    ctx.src = src;
+    ctx.volume = typeof volume === 'number' ? volume : 1;
+    ctx.loop = false;
+    ctx.autoplay = false;
+    ctx.onError((err) => {
+      console.warn('[audio][' + label + '] error:', err);
     });
   } catch (e) {
-    console.warn('[audio] create failed:', e);
-    audio = null;
+    console.warn('[audio][' + label + '] create failed:', e);
+    ctx = null;
   }
+  return ctx;
+}
 
-  // 从头重播。stop 后紧接 seek(0) + play，保证事件频繁触发时也能始终"从开头"。
-  function _play() {
-    if (!audio) return;
+function createAudio() {
+  const countdownCtx = _createCtx(COUNTDOWN_SRC, 1.0, 'countdown');
+  const victoryCtx   = _createCtx(VICTORY_SRC,   1.0, 'victory');
+
+  // 通用的"从头重播"：stop + seek(0) + play 三连
+  function _restart(ctx, label) {
+    if (!ctx) return;
     try {
-      audio.stop();
-      audio.seek(0);
-      audio.play();
+      ctx.stop();
+      ctx.seek(0);
+      ctx.play();
     } catch (e) {
-      console.warn('[audio] play failed:', e);
+      console.warn('[audio][' + label + '] play failed:', e);
     }
   }
-
-  function _stop() {
-    if (!audio) return;
-    try { audio.stop(); } catch (_) { /* noop */ }
+  function _stop(ctx) {
+    if (!ctx) return;
+    try { ctx.stop(); } catch (_) { /* noop */ }
   }
 
   return {
-    play: _play,
-    stop: _stop,
+    // 倒计时音（2063）
+    playCountdown() { _restart(countdownCtx, 'countdown'); },
+    stopCountdown() { _stop(countdownCtx); },
+    // 胜利音（231）
+    playVictory()   { _restart(victoryCtx, 'victory'); },
+    stopVictory()   { _stop(victoryCtx); },
     destroy() {
-      try { if (audio) audio.destroy(); } catch (_) { /* noop */ }
-      audio = null;
+      try { if (countdownCtx) countdownCtx.destroy(); } catch (_) { /* noop */ }
+      try { if (victoryCtx)   victoryCtx.destroy();   } catch (_) { /* noop */ }
     }
   };
 }

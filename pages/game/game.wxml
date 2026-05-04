@@ -1,51 +1,58 @@
-<!-- 全屏黑色游戏区域 -->
+<!--pages/game/game.wxml-->
+<!--
+  布局层次（从下到上）：
+    1. .stage        ：全屏黑底 / flooding 时变成赢家色（通过 data 绑定）
+    2. canvas#stage  ：负责画所有手指圆、呼吸动画、结算强调、铺屏分区等
+    3. .hud          ：顶部提示 + 底部赢家数控制栏；flash=true 时底栏加上快速闪烁类
+  触摸事件全挂在 .stage 层上，冒泡到 page 级别；控件区（.hud-bottom）用 catch 吃掉触摸不生成圆。
+-->
 <view
-  class="stage {{flooding ? 'flooding' : ''}}"
-  style="background-color: {{flooding ? floodColor : '#000000'}};"
-  catchtouchstart="onTouchStart"
-  catchtouchmove="onTouchMove"
-  catchtouchend="onTouchEnd"
-  catchtouchcancel="onTouchCancel"
+  class="stage {{flooding ? 'stage-flooding' : ''}}"
+  style="{{flooding ? 'background-color:' + floodColor : ''}}"
+  bindtouchstart="onTouchStart"
+  bindtouchmove="onTouchMove"
+  bindtouchend="onTouchEnd"
+  bindtouchcancel="onTouchCancel"
 >
-  <!-- Canvas 2D 绘制手指圆圈 -->
   <canvas
+    id="stage"
     type="2d"
-    id="gameCanvas"
-    class="game-canvas"
+    class="stage-canvas"
     disable-scroll="true"
   ></canvas>
 
-  <!-- 顶部提示文字（无玩家 / 等待中 / 胜利） -->
-  <view class="tip {{flooding ? 'tip-hidden' : ''}}" wx:if="{{!flooding}}">
-    <text wx:if="{{touchCount === 0}}">按下手指开始</text>
-    <text wx:elif="{{countingDown}}">{{countdownText}}</text>
-    <text wx:else>等待更多玩家…</text>
+  <!-- HUD：顶部提示。文案/情绪由 _computeHint 统一计算，通过 hintMood class 切换样式 -->
+  <view class="hud hud-top" catchtouchstart="noop">
+    <view class="hint hint-{{hintMood}}">{{hintText}}</view>
   </view>
 
-  <!-- 底部控制栏：赢家数量 +/-
-       父容器不再拦截任何事件，让按钮自己处理 touchstart（catch 阻止冒泡）。
-       给按钮同时绑 bindtap 和 catchtouchstart 双保险：
-         - catchtouchstart：立刻响应、阻止向 stage 冒泡生成圆圈
-         - bindtap：备用路径，touchstart 如因竞态未触发时仍能点击 -->
-  <view class="control-bar {{flooding ? 'control-hidden' : ''}}">
-    <view class="control-label">赢家数量</view>
-    <view class="control-group">
+  <!-- HUD：底部赢家数控制栏（flooding 时隐藏，避免挡住胜利画面） -->
+  <view class="hud hud-bottom {{flashing ? 'hud-flashing' : ''}}" wx:if="{{!flooding}}" catchtouchstart="noop">
+    <view class="winner-ctrl">
       <view
-        class="ctrl-btn {{winnerCount <= 1 ? 'disabled' : ''}}"
+        class="btn {{winnerCount <= 1 ? 'btn-disabled' : ''}}"
+        bindtap="onDecWinner"
         catchtouchstart="onDecTouch"
-        bindtap="decWinner"
       >−</view>
-      <view class="ctrl-num">{{winnerCount}}</view>
+      <view class="winner-label">
+        <text class="winner-num">{{winnerCount}}</text>
+        <text class="winner-text"> 位赢家</text>
+      </view>
       <view
-        class="ctrl-btn"
+        class="btn"
+        bindtap="onIncWinner"
         catchtouchstart="onIncTouch"
-        bindtap="incWinner"
       >+</view>
     </view>
-  </view>
 
-  <!-- 胜利后的提示（按下任意手指即自动开启新一局，无需拦截事件） -->
-  <view class="restart-hint" wx:if="{{flooding}}">
-    <text>按下手指重新开始</text>
+    <!-- 音效主题切换：胶囊小按钮，点一下循环切下一套并立刻试播一次 tap 音 -->
+    <view
+      class="scheme-btn"
+      bindtap="onSchemeTap"
+      catchtouchstart="onSchemeTouch"
+    >
+      <text class="scheme-icon">{{audioSchemeIcon}}</text>
+      <text class="scheme-label">{{audioSchemeLabel}}</text>
+    </view>
   </view>
 </view>

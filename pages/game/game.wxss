@@ -1,123 +1,346 @@
-.stage {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  background: #000000;
-  overflow: hidden;
-  transition: background-color 450ms ease-out;
-}
+/* pages/game/game.wxss
+ *
+ * 视觉风格：暗色极简 + 柔和辉光（类似 iOS 锁屏灵动岛的克制感）
+ * 关键取舍：
+ *   - 小程序 backdrop-filter 兼容性极差 → 统一改用"暗色渐变 + 内发光 + 细边"模拟玻璃质感
+ *   - 所有边框/边缘用极细 1rpx 亮线 + box-shadow inset 打出层次
+ *   - 闪烁动画弃用 opacity 直跳，改为呼吸光晕 + 彩色流光边
+ */
 
-.game-canvas {
+.stage {
   position: absolute;
   left: 0;
   top: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(ellipse at center, #0a0a12 0%, #000 70%);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.tip {
+.stage-canvas {
   position: absolute;
-  /* 在安全区基础上再加 40rpx，避开刘海 / 灵动岛 / 状态栏 */
-  top: calc(env(safe-area-inset-top, 0px) + 40rpx);
-  left: calc(env(safe-area-inset-left, 0px) + 32rpx);
-  right: calc(env(safe-area-inset-right, 0px) + 32rpx);
-  text-align: center;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 30rpx;
-  letter-spacing: 2rpx;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ---- HUD 基础 ---- */
+.hud {
+  position: absolute;
+  left: 0;
+  right: 0;
   pointer-events: none;
-  font-weight: 300;
-}
-
-.tip-hidden {
-  opacity: 0;
-}
-
-.control-bar {
-  position: absolute;
-  left: calc(env(safe-area-inset-left, 0px) + 0rpx);
-  right: calc(env(safe-area-inset-right, 0px) + 0rpx);
-  /* 兼容 iPhone Home Indicator，在安全区基础上再抬 40rpx */
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 40rpx);
+  z-index: 10;
   display: flex;
+  justify-content: center;
+}
+
+.hud-top {
+  top: 0;
+  padding: 120rpx 40rpx 0;
+}
+
+.hud-bottom {
+  bottom: 72rpx;
+  pointer-events: auto;
+  /* 赢家数控件 + 右侧音效主题按钮：纵向紧凑排布，按钮居中对齐 */
   flex-direction: column;
   align-items: center;
-  z-index: 10;
-  transition: opacity 300ms ease;
+  gap: 20rpx;
 }
 
-.control-hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.control-label {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 26rpx;
-  margin-bottom: 20rpx;
-  letter-spacing: 4rpx;
-}
-
-.control-group {
+/* ---- 音效主题切换胶囊按钮（小号，复用玻璃质感） ---- */
+.scheme-btn {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 80rpx;
-  padding: 12rpx 24rpx;
-  backdrop-filter: blur(12rpx);
+  gap: 10rpx;
+  padding: 10rpx 24rpx;
+  border-radius: 100rpx;
+  color: rgba(255,255,255,0.82);
+  font-size: 22rpx;
+  letter-spacing: 2rpx;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255,255,255,0.12),
+    inset 0 -1rpx 0 rgba(0,0,0,0.4),
+    0 6rpx 18rpx rgba(0,0,0,0.45);
+  transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.scheme-btn:active {
+  transform: scale(0.94);
+  box-shadow:
+    inset 0 2rpx 4rpx rgba(0,0,0,0.5),
+    inset 0 -1rpx 0 rgba(255,255,255,0.12),
+    0 1rpx 4rpx rgba(0,0,0,0.3);
+}
+.scheme-icon { font-size: 26rpx; line-height: 1; }
+.scheme-label { font-size: 22rpx; line-height: 1; }
+
+/* ---- 顶部提示条 ---- */
+.hint {
+  position: relative;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 28rpx;
+  letter-spacing: 4rpx;
+  padding: 18rpx 40rpx;
+  border-radius: 100rpx;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255,255,255,0.12),      /* 顶部高光线 */
+    inset 0 -1rpx 0 rgba(0,0,0,0.4),            /* 底部暗线 */
+    0 8rpx 24rpx rgba(0,0,0,0.5);               /* 外投影 */
+  animation: hintFade 0.4s ease-out;
 }
 
-.ctrl-btn {
+/*
+ * 提示条 mood 体系：
+ *   calm     空闲 0 人    → 柔和呼吸，邀请感
+ *   waiting  差 1 位       → 轻微左右晃动，"找第二位"
+ *   ready    刚满人（过渡）→ 轻弹入
+ *   steady   倒计时 3→2s   → 静态微发光
+ *   tense    倒计时 2→1s   → 快速呼吸 + 偏暖色
+ *   urgent   倒计时 <1s    → 跟底部控件同频高频脉冲，警示红
+ *   winner   结算 1s       → 金色辉光爆发
+ *   restart  铺屏          → 慢脉冲 + 明显的交互邀请（沿用旧 hint-restart 设计）
+ * 全部通过 animation 叠加在 .hint 基础样式上，每次 mood 切换会重新触发动画（hintFade 入场）。
+ */
+
+/* ---- calm：空闲呼吸 ---- */
+.hint-calm {
+  animation: hintFade 0.4s ease-out, hintCalmBreath 3s ease-in-out 0.4s infinite;
+}
+@keyframes hintCalmBreath {
+  0%, 100% { opacity: 0.7;  transform: scale(1);     }
+  50%      { opacity: 1;    transform: scale(1.04);  }
+}
+
+/* ---- waiting：差 1 位，文字轻微晃动提示"再来一位" ---- */
+.hint-waiting {
+  color: rgba(255, 230, 180, 0.95);
+  animation: hintFade 0.3s ease-out, hintWaitingSway 1.8s ease-in-out 0.3s infinite;
+}
+@keyframes hintWaitingSway {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-4rpx); }
+  75%      { transform: translateX(4rpx); }
+}
+
+/* ---- ready：刚满人瞬间弹一下 ---- */
+.hint-ready {
+  color: rgba(180, 240, 255, 0.95);
+  animation: hintReadyPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes hintReadyPop {
+  0%   { opacity: 0; transform: scale(0.8); }
+  60%  { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ---- steady：倒计时 3→2s，静态微发光 ---- */
+.hint-steady {
+  color: rgba(200, 220, 255, 0.95);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255,255,255,0.18),
+    inset 0 -1rpx 0 rgba(0,0,0,0.4),
+    0 0 30rpx rgba(120, 180, 255, 0.25),
+    0 8rpx 24rpx rgba(0,0,0,0.5);
+  animation: hintFade 0.3s ease-out;
+}
+
+/* ---- tense：倒计时 2→1s，快速呼吸 + 偏暖色 ---- */
+.hint-tense {
+  color: rgba(255, 220, 150, 1);
+  font-weight: 500;
+  animation: hintFade 0.2s ease-out, hintTenseBreath 0.6s ease-in-out 0.2s infinite;
+}
+@keyframes hintTenseBreath {
+  0%, 100% { transform: scale(1);    box-shadow: inset 0 1rpx 0 rgba(255,255,255,0.2), inset 0 -1rpx 0 rgba(0,0,0,0.4), 0 0 30rpx rgba(255, 180, 80, 0.35),  0 8rpx 24rpx rgba(0,0,0,0.5); }
+  50%      { transform: scale(1.05); box-shadow: inset 0 1rpx 0 rgba(255,255,255,0.3), inset 0 -1rpx 0 rgba(0,0,0,0.4), 0 0 50rpx rgba(255, 180, 80, 0.55),  0 8rpx 32rpx rgba(0,0,0,0.5); }
+}
+
+/* ---- urgent：倒计时 <1s，高频脉冲 + 红色警示 ---- */
+.hint-urgent {
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+  letter-spacing: 8rpx;
+  animation:
+    hintFade 0.15s ease-out,
+    hintUrgentPulse 0.42s ease-in-out 0.15s infinite;
+}
+@keyframes hintUrgentPulse {
+  0%, 100% { transform: scale(1);    box-shadow: inset 0 1rpx 0 rgba(255,255,255,0.25), inset 0 -1rpx 0 rgba(0,0,0,0.4), 0 0 40rpx rgba(255, 90, 90, 0.6),   0 8rpx 24rpx rgba(0,0,0,0.5); }
+  50%      { transform: scale(0.96); box-shadow: inset 0 1rpx 0 rgba(255,255,255,0.35), inset 0 -1rpx 0 rgba(0,0,0,0.4), 0 0 60rpx rgba(255, 90, 120, 0.85), 0 8rpx 32rpx rgba(0,0,0,0.5); }
+}
+
+/* ---- winner：胜利祝贺，金色辉光爆发 ---- */
+.hint-winner {
+  color: #fff7d6;
+  font-size: 36rpx;
+  font-weight: 600;
+  letter-spacing: 8rpx;
+  background:
+    linear-gradient(135deg, rgba(255,215,100,0.28) 0%, rgba(255,180,60,0.08) 100%);
+  animation:
+    hintWinnerBurst 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    hintWinnerGlow  1.2s ease-in-out 0.5s infinite;
+}
+@keyframes hintWinnerBurst {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes hintWinnerGlow {
+  0%, 100% { box-shadow: inset 0 1rpx 0 rgba(255,235,150,0.4), inset 0 -1rpx 0 rgba(120,60,0,0.35), 0 0 40rpx  rgba(255, 200, 80, 0.5), 0 8rpx 32rpx rgba(0,0,0,0.5); }
+  50%      { box-shadow: inset 0 1rpx 0 rgba(255,245,200,0.6), inset 0 -1rpx 0 rgba(120,60,0,0.35), 0 0 72rpx  rgba(255, 220, 120, 0.85), 0 8rpx 32rpx rgba(0,0,0,0.5); }
+}
+
+/* ---- restart：铺屏后的交互邀请 ---- */
+.hint-restart {
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 500;
+  letter-spacing: 6rpx;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 100%);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255,255,255,0.25),
+    inset 0 -1rpx 0 rgba(0,0,0,0.5),
+    0 0 40rpx rgba(255,255,255,0.15),
+    0 8rpx 32rpx rgba(0,0,0,0.6);
+  animation: hintFade 0.4s ease-out, hintRestartPulse 2.4s ease-in-out 0.4s infinite;
+}
+
+@keyframes hintFade {
+  from { opacity: 0; transform: translateY(-8rpx); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hintRestartPulse {
+  0%, 100% { box-shadow: inset 0 1rpx 0 rgba(255,255,255,0.25), inset 0 -1rpx 0 rgba(0,0,0,0.5), 0 0 40rpx rgba(255,255,255,0.15), 0 8rpx 32rpx rgba(0,0,0,0.6); }
+  50%      { box-shadow: inset 0 1rpx 0 rgba(255,255,255,0.35), inset 0 -1rpx 0 rgba(0,0,0,0.5), 0 0 60rpx rgba(255,255,255,0.25), 0 8rpx 40rpx rgba(0,0,0,0.6); }
+}
+
+/* ---- 赢家数控制栏（胶囊形 + 玻璃质感） ---- */
+.winner-ctrl {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 120rpx;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 100%);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255,255,255,0.15),
+    inset 0 -1rpx 0 rgba(0,0,0,0.35),
+    0 12rpx 40rpx rgba(0,0,0,0.55);
+}
+
+/* ---- 圆形按钮（深色凸起 → 按下凹陷） ---- */
+.btn {
+  position: relative;
   width: 80rpx;
   height: 80rpx;
-  line-height: 76rpx;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
-  font-size: 48rpx;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
   font-weight: 300;
-  transition: transform 120ms ease, background 200ms ease;
+  color: rgba(255,255,255,0.92);
+  line-height: 1;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 60%, rgba(0,0,0,0.2) 100%);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255,255,255,0.25),      /* 顶部高光 */
+    inset 0 -2rpx 2rpx rgba(0,0,0,0.35),        /* 底部凹影 */
+    0 4rpx 12rpx rgba(0,0,0,0.4);               /* 外投影 */
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
 }
 
-.ctrl-btn:active {
+.btn:active {
   transform: scale(0.92);
-  background: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    inset 0 2rpx 4rpx rgba(0,0,0,0.5),          /* 按下变成凹进去 */
+    inset 0 -1rpx 0 rgba(255,255,255,0.12),
+    0 1rpx 4rpx rgba(0,0,0,0.3);
 }
 
-.ctrl-btn.disabled {
+.btn-disabled {
   opacity: 0.3;
   pointer-events: none;
 }
 
-.ctrl-num {
-  min-width: 80rpx;
-  margin: 0 24rpx;
-  color: #ffffff;
-  font-size: 44rpx;
-  text-align: center;
-  font-weight: 500;
-}
-
-.restart-hint {
-  position: absolute;
-  inset: 0;
+/* ---- 中间赢家数标签 ---- */
+.winner-label {
   display: flex;
-  align-items: flex-end;
+  align-items: baseline;
   justify-content: center;
-  /* 避开 Home Indicator */
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80rpx);
-  z-index: 20;
+  min-width: 160rpx;
+  color: #fff;
+  padding: 0 12rpx;
 }
 
-.restart-hint text {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 32rpx;
+.winner-num {
+  font-size: 52rpx;
+  font-weight: 600;
+  letter-spacing: 0;
+  /* 等宽感 + 微发光，避免数字切换时宽度抖动 */
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 12rpx rgba(255,255,255,0.3);
+}
+
+.winner-text {
+  font-size: 24rpx;
+  font-weight: 300;
   letter-spacing: 4rpx;
-  padding: 18rpx 48rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.4);
-  border-radius: 60rpx;
-  backdrop-filter: blur(8rpx);
+  color: rgba(255,255,255,0.55);
+  margin-left: 8rpx;
+}
+
+/* ---- 倒计时最后 1 秒：优雅的高频呼吸 + 彩虹流光边 ---- */
+/*
+ * 设计意图：
+ *   不是"一闪一灭"那种硬闪，而是"能量聚集感"——
+ *   ① 整体控件微微吸气收缩一点点（0.96 ↔ 1.0，幅度克制）
+ *   ② 外层 box-shadow 的色彩辉光快速流转，从冷色到暖色
+ *   ③ 数字的发光强度同步脉冲
+ * 三者叠加出"电量快满了，马上要出结果"的仪式感。
+ */
+@keyframes urgentBreath {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(0.97); }
+}
+
+@keyframes urgentHalo {
+  0%   { box-shadow: inset 0 1rpx 0 rgba(255,255,255,0.2), inset 0 -1rpx 0 rgba(0,0,0,0.35), 0 0 32rpx rgba(120, 180, 255, 0.55), 0 12rpx 40rpx rgba(0,0,0,0.55); }
+  33%  { box-shadow: inset 0 1rpx 0 rgba(255,255,255,0.3), inset 0 -1rpx 0 rgba(0,0,0,0.35), 0 0 48rpx rgba(255, 120, 200, 0.7), 0 12rpx 40rpx rgba(0,0,0,0.55); }
+  66%  { box-shadow: inset 0 1rpx 0 rgba(255,255,255,0.3), inset 0 -1rpx 0 rgba(0,0,0,0.35), 0 0 48rpx rgba(255, 220, 100, 0.7), 0 12rpx 40rpx rgba(0,0,0,0.55); }
+  100% { box-shadow: inset 0 1rpx 0 rgba(255,255,255,0.2), inset 0 -1rpx 0 rgba(0,0,0,0.35), 0 0 32rpx rgba(120, 255, 180, 0.55), 0 12rpx 40rpx rgba(0,0,0,0.55); }
+}
+
+@keyframes urgentNumGlow {
+  0%, 100% { text-shadow: 0 0 12rpx rgba(255,255,255,0.3); }
+  50%      { text-shadow: 0 0 24rpx rgba(255,255,255,0.85), 0 0 40rpx rgba(255,255,255,0.4); }
+}
+
+.hud-flashing .winner-ctrl {
+  animation:
+    urgentBreath 0.42s ease-in-out infinite,
+    urgentHalo   0.9s linear infinite;
+}
+
+.hud-flashing .winner-num {
+  animation: urgentNumGlow 0.42s ease-in-out infinite;
+}
+
+/* 倒计时中的顶部提示也同步一下呼吸感（不流光，保持克制） */
+.hud-flashing .hint {
+  animation: urgentNumGlow 0.42s ease-in-out infinite;
 }

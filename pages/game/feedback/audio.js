@@ -14,7 +14,7 @@
 const COUNTDOWN_SRC = '/assets/audio/classic/mixkit-arcade-rising-231.wav';
 const VICTORY_SRC   = '/assets/audio/classic/mixkit-completion-of-a-level-2063.wav';
 
-function _createCtx(src, volume, label) {
+function _createCtx(src, volume) {
   let ctx = null;
   try {
     ctx = wx.createInnerAudioContext({ useWebAudioImplement: false });
@@ -22,30 +22,25 @@ function _createCtx(src, volume, label) {
     ctx.volume = typeof volume === 'number' ? volume : 1;
     ctx.loop = false;
     ctx.autoplay = false;
-    ctx.onError((err) => {
-      console.warn('[audio][' + label + '] error:', err);
-    });
-  } catch (e) {
-    console.warn('[audio][' + label + '] create failed:', e);
+    ctx.onError(() => { /* 静默：文件缺失 / 解码失败时游戏继续能玩 */ });
+  } catch (_) {
     ctx = null;
   }
   return ctx;
 }
 
 function createAudio() {
-  const countdownCtx = _createCtx(COUNTDOWN_SRC, 1.0, 'countdown');
-  const victoryCtx   = _createCtx(VICTORY_SRC,   1.0, 'victory');
+  const countdownCtx = _createCtx(COUNTDOWN_SRC, 1.0);
+  const victoryCtx   = _createCtx(VICTORY_SRC,   1.0);
 
   // 通用的"从头重播"：stop + seek(0) + play 三连
-  function _restart(ctx, label) {
+  function _restart(ctx) {
     if (!ctx) return;
     try {
       ctx.stop();
       ctx.seek(0);
       ctx.play();
-    } catch (e) {
-      console.warn('[audio][' + label + '] play failed:', e);
-    }
+    } catch (_) { /* noop */ }
   }
   function _stop(ctx) {
     if (!ctx) return;
@@ -54,10 +49,10 @@ function createAudio() {
 
   return {
     // 倒计时音（2063）
-    playCountdown() { _restart(countdownCtx, 'countdown'); },
+    playCountdown() { _restart(countdownCtx); },
     stopCountdown() { _stop(countdownCtx); },
     // 胜利音（231）
-    playVictory()   { _restart(victoryCtx, 'victory'); },
+    playVictory()   { _restart(victoryCtx); },
     stopVictory()   { _stop(victoryCtx); },
     destroy() {
       try { if (countdownCtx) countdownCtx.destroy(); } catch (_) { /* noop */ }

@@ -82,15 +82,31 @@ function createStore() {
 
     // ------- 写入 -------
 
+    // 收集【当前同屏所有未抬手的手指】的色相，用于新指选色时避让
+    // despawning 的手指 0.3s 内还在淡出画面上，也要避让避免撞色
+    // 刷新某个 id 时，排除自己的旧色相（下面 addOrRefresh 会 pass selfId）
+    _collectExistingHues(selfId) {
+      const out = [];
+      fingers.forEach((f) => {
+        if (f.id === selfId) return;
+        // victory / flooding 阶段的圆已经无所谓色相了（要么马上被放大强调，要么铺屏已盖住）
+        if (f.state === 'idle' || f.state === 'victory' || f.state === 'flooding') return;
+        if (typeof f.hue === 'number') out.push(f.hue);
+      });
+      return out;
+    },
+
     // 新按下一根手指。如果 id 已存在（系统偶发复用），原地刷新而非新建。
     // 返回值：{ added: boolean, finger }
     // added=true 表示新增；false 表示 id 已存在被刷新
     addOrRefresh(id, x, y, now) {
       const existed = fingers.get(id);
       if (existed) {
+        const picked = randomColor(this._collectExistingHues(id));
         existed.x = x;
         existed.y = y;
-        existed.color = randomColor();
+        existed.color = picked.color;
+        existed.hue = picked.hue;
         existed.sizeScale = randomSizeScale();
         existed.createdAt = now;
         existed.state = 'spawning';
@@ -98,11 +114,13 @@ function createStore() {
         existed.lastMissAt = 0;
         return { added: false, finger: existed };
       }
+      const picked = randomColor(this._collectExistingHues(id));
       const f = {
         id,
         x,
         y,
-        color: randomColor(),
+        color: picked.color,
+        hue: picked.hue,
         sizeScale: randomSizeScale(),
         createdAt: now,
         state: 'spawning',

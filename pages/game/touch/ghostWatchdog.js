@@ -110,9 +110,6 @@ function createGhostWatchdog(store, opts) {
         if (ok) removedIds.push(ghosts[i].id);
       }
       if (removedIds.length > 0) {
-        console.log('[ghostWatchdog] ⏳ miss accumulated >= threshold, despawn:',
-          JSON.stringify(ghosts),
-          '| threshold:', MISS_THRESHOLD_MS, 'ms');
         onGhostRemoved(removedIds);
       }
       return removedIds;

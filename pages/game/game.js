@@ -125,9 +125,7 @@ Page({
   onReady() {
     this.renderer.init(this).then(() => {
       this.renderer.start();
-    }).catch((err) => {
-      console.error('[game] renderer init failed:', err);
-    });
+    }).catch(() => { /* 渲染器初始化失败就静默放弃，不中断游戏 UI */ });
   },
 
   onUnload() {
@@ -407,6 +405,10 @@ Page({
     // 两条路径都会走 _resetGame（_resetGame 内部会清掉 _autoResetTimer 避免重复触发）。
     this._floodTimer = setTimeout(() => {
       this._stage = 'flooding'; // 保持在 flooding 画面上
+      // 铺屏动画刚刚结束、背景色铺满那一刻：立即销毁所有手指圆，避免它们残留在铺屏画面上。
+      // 注意：渲染器在 flooding 阶段走 drawFlooding 分支（只依赖 groups 和 floodStartedAt），
+      //       不会遍历 store 里的圆，所以此处清空 store 对铺屏渲染无影响。
+      this.store.reset();
       this.touch.setGameEnded(true);
       // 再停留 POST_FLOOD_HOLD_MS 后自动回到初始黑色画面
       this._autoResetTimer = setTimeout(() => this._resetGame(), POST_FLOOD_HOLD_MS);

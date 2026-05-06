@@ -69,7 +69,7 @@ function createStore() {
       return out;
     },
 
-    // 返回所有处于 showdown 的候选（最多 2 个），按稳定排序保证 ping-pong 反相一致
+    // 返回所有处于 showdown 的候选（m+1 个，m 为赢家数），按稳定排序保证 ping-pong 反相一致
     showdownList() {
       const out = [];
       fingers.forEach((f) => {
@@ -153,7 +153,7 @@ function createStore() {
 
     // 抉择阶段：把指定 id 集合里的手指标记为 showdown 候选，
     // 其他活跃手指立即转 despawning 快速淡出。
-    // candidateIds 是 Set<id>，应该恰好 2 个（由 page 层挑选）。
+    // candidateIds 是 Set<id>，大小为 m+1（m 为赢家数）；n ≤ m+1 时等于 n（兜底，全员入场）。
     applyShowdown(candidateIds, now) {
       fingers.forEach((f) => {
         if (f.state !== 'spawning' && f.state !== 'alive') return;

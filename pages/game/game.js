@@ -28,8 +28,15 @@ const MIN_PLAYERS = 2;
 const COUNTDOWN_MS = 4000;
 // 抉择阶段：倒计时剩余 ≤ SHOWDOWN_MS 时进入。
 const SHOWDOWN_MS = 1000;
-// 抉择候选固定 2 人（规则：不管赢家数多少，视觉统一）
-const SHOWDOWN_CANDIDATES = 2;
+// 赢家数量上限（UI 上限 + 策略上限）
+const MAX_WINNERS = 5;
+// 抉择阶段候选数 = m + 1（m 为赢家数）：先淘汰 n-m-1 人，留 m+1 人 PK，最后选出 m 个赢家
+// 这样不管 m 多大，抉择阶段永远恰好 1 个人被淘汰，视觉张力最强
+function computeShowdownCandidates(winnerCount, activeCount) {
+  const m = Math.max(1, Math.min(winnerCount | 0, MAX_WINNERS));
+  // m+1 候选；若活跃人数比 m+1 还少，就全部进 showdown（兜底）
+  return Math.min(m + 1, activeCount);
+}
 const VICTORY_HOLD_MS = 1000;
 const FLOOD_DURATION_MS = 700;
 // 铺屏完成后停留时长：给玩家看清赢家的短暂喘息，然后自动回到初始黑色画面。
@@ -177,6 +184,7 @@ Page({
 
   onIncWinner() {
     if (this._stage !== 'idle') return; // 结算中不允许改
+    if (this.data.winnerCount >= MAX_WINNERS) return; // 上限 5
     this.setData({ winnerCount: this.data.winnerCount + 1 });
     this.haptic.light();
   },
@@ -320,13 +328,15 @@ Page({
 
   // ---------------- showdown / victory / flooding ----------------
 
-  // 进入抉择阶段：从活跃手指里随机挑 2 个候选，其他立即淡出
+  // 进入抉择阶段：根据 m（赢家数）挑出 m+1 个候选，其他立即淡出。
+  // 规则：先一次性淘汰 n-m-1 人 → 留 m+1 人 ping-pong → _enterVictory 再从中选 m 人当赢家。
+  // 当 n ≤ m+1 时兜底：所有活跃手指全部进入 showdown，不做淘汰。
   _enterShowdown() {
     const active = this.store.activeList();
     if (active.length < MIN_PLAYERS) return; // 人数不够兜底
 
-    // 随机挑 2 个（如果恰好只有 2 人则直接选这 2 个）
-    const picked = this._pickRandomK(active, SHOWDOWN_CANDIDATES);
+    const k = computeShowdownCandidates(this.data.winnerCount, active.length);
+    const picked = this._pickRandomK(active, k);
     const duelSet = new Set();
     for (let i = 0; i < picked.length; i++) duelSet.add(picked[i].id);
 
@@ -368,8 +378,10 @@ Page({
     if (pool.length < 1) return;
 
     // 通过策略层选出 Group 列表（扩展点）
-    // 注意：winnerCount 可能大于 pool.length（2），策略内部会 Math.min 处理
-    this._groups = this.strategy.pick(pool, { winnerCount: this.data.winnerCount });
+    // showdown 阶段 pool.length = m+1（或 n，若 n<m+1），策略内 Math.min 保证不越界
+    // 再次 clamp 到 MAX_WINNERS，防止 UI 层绕过上限
+    const m = Math.max(1, Math.min(this.data.winnerCount | 0, MAX_WINNERS));
+    this._groups = this.strategy.pick(pool, { winnerCount: m });
     if (!this._groups || this._groups.length === 0) return;
 
     // 把赢家 id 聚合起来交给 store

@@ -43,7 +43,7 @@
         <text class="winner-text"> 位赢家</text>
       </view>
       <view
-        class="btn"
+        class="btn {{winnerCount >= 5 ? 'btn-disabled' : ''}}"
         bindtap="onIncWinner"
       >+</view>
     </view>

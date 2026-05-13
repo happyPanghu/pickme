@@ -322,9 +322,9 @@
 .contact-icon {
   position: absolute;
   right: 32rpx;
-  bottom: 32rpx;
-  width: 80rpx;
-  height: 80rpx;
+  bottom: 72rpx;
+  width: 60rpx;
+  height: 60rpx;
   border-radius: 50%;
   background:
     linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%);
@@ -349,7 +349,7 @@
 }
 
 .contact-icon-text {
-  font-size: 36rpx;
+  font-size: 27rpx;
   color: rgba(255,255,255,0.85);
 }
 

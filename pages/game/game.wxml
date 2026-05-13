@@ -48,4 +48,9 @@
       >+</view>
     </view>
   </view>
+
+  <!-- 右下角联系作者图标 -->
+  <view class="contact-icon" bindtap="onContactAuthor">
+    <text class="contact-icon-text">💬</text>
+  </view>
 </view>

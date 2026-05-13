@@ -194,6 +194,13 @@ Page({
     this.setData({ winnerCount: this.data.winnerCount - 1 });
     this.haptic.light();
   },
+  onContactAuthor() {
+    wx.showToast({
+      title: '开发者：coffeebeanbot',
+      icon: 'none',
+      duration: 3000
+    });
+  },
 
   // ---------------- 倒计时 / 结算 编排 ----------------
 
